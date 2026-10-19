@@ -123,6 +123,18 @@ Sans en-tête `Authorization`, le serveur répond `401`.
 1. Dans **Paramètres**, cocher « Webhook actif ».
 2. Publier une note depuis l'interface : le panneau « Sous le capot » affiche le POST émis (URL, payload, code de réponse). Sans agent à l'écoute sur le port 4000, la réponse indique une erreur de connexion, ce qui est normal tant que `agent/` n'existe pas.
 
+## Brancher GitHub Copilot (VS Code) sur le serveur MCP
+
+Le connecteur est déjà configuré dans `vscode-demo/.vscode/mcp.json` (serveur `appli-rh`, URL `http://localhost:3000/mcp`).
+
+1. Démarrer l'application (`npm start`).
+2. Dans VS Code, ouvrir le **dossier `vscode-demo/`** (`code vscode-demo`), pas la racine du dépôt.
+3. Ouvrir `.vscode/mcp.json` et cliquer sur **Start** au-dessus du serveur `appli-rh` (ou commande **MCP: List Servers**).
+4. À la demande du token, valider `demo-rh-xxxx` (droits lecture + écriture).
+5. Dans Copilot Chat, passer en **mode Agent**, ouvrir le sélecteur d'outils : les outils `appli-rh` apparaissent. Essayer : « Liste le personnel ».
+
+Les appels s'affichent aussitôt dans le panneau « Sous le capot » de l'interface web.
+
 ## Arborescence
 
 ```
@@ -133,5 +145,5 @@ app/                 Application RH (Express), serveur MCP, webhook, interface
   data/db.json       base JSON (créée au lancement)
   test/              tests
 agent/               (à venir) orchestrateur + Copilot CLI en ACP + messagerie
-vscode-demo/         (à venir) configuration MCP, agent RH et skills pour VS Code
+vscode-demo/         configuration MCP pour VS Code (.vscode/mcp.json) ; agent RH et skills à venir
 ```

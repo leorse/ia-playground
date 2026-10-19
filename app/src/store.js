@@ -14,6 +14,7 @@ let db;
 function charger() {
   if (existsSync(FICHIER)) {
     db = JSON.parse(readFileSync(FICHIER, 'utf8'));
+    if (dedoublonner()) sauver(false);
   } else {
     db = { ...donneesDeDepart(), parametres: structuredClone(PARAMETRES) };
     sauver(false);
@@ -27,7 +28,29 @@ function sauver(notifier = true) {
 }
 
 const maintenant = () => new Date().toISOString();
-const nouvelId = (prefixe) => `${prefixe}-${String(++db.compteurs[prefixe]).padStart(4, '0')}`;
+const COLLECTIONS = { P: 'personnel', T: 'taches', N: 'notes' };
+const numero = (id) => Number(String(id).split('-')[1]) || 0;
+
+/** Identifiant unique : au-dessus du compteur ET de tout identifiant déjà présent (seed, compteur périmé). */
+function nouvelId(prefixe) {
+  const maxExistant = Math.max(0, ...(db[COLLECTIONS[prefixe]] ?? []).map((x) => numero(x.id)));
+  db.compteurs[prefixe] = Math.max(db.compteurs[prefixe] ?? 0, maxExistant) + 1;
+  return `${prefixe}-${String(db.compteurs[prefixe]).padStart(4, '0')}`;
+}
+
+/** Répare une base existante : les doublons d'identifiant (hors premier) reçoivent un nouvel identifiant. */
+function dedoublonner() {
+  db.compteurs ??= {};
+  let modifie = false;
+  for (const [prefixe, collection] of Object.entries(COLLECTIONS)) {
+    const vus = new Set();
+    for (const x of db[collection]) {
+      if (vus.has(x.id)) { x.id = nouvelId(prefixe); modifie = true; }
+      vus.add(x.id);
+    }
+  }
+  return modifie;
+}
 
 export class ErreurMetier extends Error {}
 const erreur = (msg) => { throw new ErreurMetier(msg); };

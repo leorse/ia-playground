@@ -44,6 +44,9 @@ test('agent RH : liste des outils, création fiche + CDD sans date_fin refusé',
   assert.match(sans.texte, /date_fin.*obligatoire.*CDD/);
   const ok = await appeler(c, 'creer_fiche_personnel', { prenom: 'Jean', nom: 'Bonno', poste: 'Développeur', type_contrat: 'CDD', date_debut: '2027-01-12', date_fin: '2027-04-11', date_fin_calculee: true });
   assert.ok(!ok.erreur);
+  assert.match(ok.texte, /"id": ?"P-0006"/); // 5 fiches du seed déjà présentes
+  const autre = await appeler(c, 'creer_fiche_personnel', { prenom: 'Léa', nom: 'Durand', poste: 'Commercial', type_contrat: 'CDI', date_debut: '2027-02-01' });
+  assert.match(autre.texte, /"id": ?"P-0007"/);
   const doublon = await appeler(c, 'creer_fiche_personnel', { prenom: 'Jean', nom: 'Bonno', poste: 'Développeur', type_contrat: 'CDD', date_debut: '2027-01-12', date_fin: '2027-04-11' });
   assert.match(doublon.texte, /existe déjà/);
   const mauvaiseDate = await appeler(c, 'creer_tache', { titre: 'x', debut: '12 janvier' });

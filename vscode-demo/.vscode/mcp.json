@@ -1,0 +1,17 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "token-rh",
+      "description": "Token de l'application RH (démo : demo-rh-xxxx)",
+      "default": "demo-rh-xxxx"
+    }
+  ],
+  "servers": {
+    "appli-rh": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp",
+      "headers": { "Authorization": "Bearer ${input:token-rh}" }
+    }
+  }
+}

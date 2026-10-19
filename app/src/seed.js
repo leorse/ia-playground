@@ -18,7 +18,7 @@ export function donneesDeDepart() {
   const jeudi = prochain(4, new Date(Date.now() + 7 * 864e5)); // jeudi de la semaine prochaine
   const maintenant = new Date().toISOString();
   return {
-    compteurs: { P: 0, T: 2, N: 0, A: 0 },
+    compteurs: { P: annuaire.salaries.length, T: 2, N: 0, A: 0 },
     personnel: annuaire.salaries.map((s, i) => {
       const [prenom, ...reste] = s.nom.split(' ');
       return {
