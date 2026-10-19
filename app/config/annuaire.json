@@ -1,0 +1,16 @@
+{
+  "roles": {
+    "rh": { "nom": "Claire Dumas", "email": "rh@exemple.local" },
+    "informatique": { "nom": "Support IT", "email": "it@exemple.local" },
+    "services_generaux": { "nom": "Accueil & logistique", "email": "sg@exemple.local" },
+    "direction": { "nom": "Anne Roy", "email": "direction@exemple.local" },
+    "manager:Équipe produit": { "nom": "Paul Girard", "email": "paul.girard@exemple.local" }
+  },
+  "salaries": [
+    { "nom": "Sophie Martin", "email": "sophie.martin@exemple.local", "service": "Équipe produit", "poste": "Cheffe de projet" },
+    { "nom": "Marc Lefèvre", "email": "marc.lefevre@exemple.local", "service": "Équipe produit", "poste": "Développeur" },
+    { "nom": "Karim Benali", "email": "karim.benali@exemple.local", "service": "Équipe produit", "poste": "Développeur" },
+    { "nom": "Lucie Petit", "email": "lucie.petit@exemple.local", "service": "Équipe produit", "poste": "Designer" },
+    { "nom": "Paul Girard", "email": "paul.girard@exemple.local", "service": "Équipe produit", "poste": "Manager" }
+  ]
+}
