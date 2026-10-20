@@ -9,13 +9,14 @@ La spécification complète est dans `spec-plateforme-demo-ia.md` (v0.2).
 | Composant | Dossier | État |
 |---|---|---|
 | Application RH + serveur MCP + webhook | `app/` | ✅ disponible |
-| Agent autonome (orchestrateur + Copilot CLI en ACP + messagerie) | `agent/` | à venir |
+| Agent autonome (orchestrateur + Copilot CLI en ACP + messagerie) | `agent/` | ✅ disponible (testé avec un faux Copilot CLI, pas avec le vrai) |
 | Agent RH et skills pour VS Code | `vscode-demo/` | à venir |
 
 ## Prérequis
 
 - Node.js 22 ou plus (`node -v`)
 - `curl` (inclus dans Windows 10/11)
+- Pour l'agent autonome : **GitHub Copilot CLI** installé et authentifié (`copilot`), avec le support ACP
 
 ## Installation (« compilation »)
 
@@ -25,7 +26,7 @@ Il n'y a **pas de compilation** : c'est du JavaScript exécuté tel quel, sans b
 npm run install:all
 ```
 
-(équivalent à `cd app && npm install`)
+(équivalent à `npm install` dans `app/` puis dans `agent/`)
 
 ## Lancement
 
@@ -56,7 +57,10 @@ Les données sont stockées dans `app/data/db.json` (créé au premier lancement
 npm test
 ```
 
-Les tests lancent un serveur temporaire (port 3999) avec une base jetable et vérifient : refus sans token, outils MCP, droits par token, webhook, réinitialisation.
+Deux séries de tests, sans Copilot ni réseau :
+
+- `app/` (port 3999, base jetable) : refus sans token, outils MCP, droits par token, webhook, réinitialisation.
+- `agent/` (ports 3994 et 4994) : politique d'autorisation, file d'attente, rejet d'un webhook sans secret, et la **chaîne complète** (webhook → orchestrateur → session ACP → appels MCP → `.eml` → annotation) avec un faux Copilot CLI (`agent/test/faux-copilot.js`).
 
 ## Utiliser l'interface
 
@@ -118,10 +122,67 @@ curl -s http://localhost:3000/mcp -H "Content-Type: application/json" -H "Accept
 
 Sans en-tête `Authorization`, le serveur répond `401`.
 
+## Agent autonome
+
+L'agent autonome se compose de **l'orchestrateur** (`agent/`, Node.js) et de **Copilot CLI** qu'il pilote en ACP (`copilot --acp --stdio`). Copilot CLI est le cerveau (LLM, boucle d'outils, lecture de la persona et des skills dans `agent/workspace/`) ; l'orchestrateur reçoit le webhook, ouvre une session ACP par note, répond aux demandes d'autorisation et fournit l'outil d'envoi de mail.
+
+### Lancement
+
+Dans **deux terminaux** (l'application d'abord) :
+
+```cmd
+npm start
+npm run start:agent
+```
+
+ou sous Windows : `demarrer-app.cmd` puis `demarrer-agent.cmd` (ce dernier crée `agent/.env` depuis `agent/.env.example` s'il n'existe pas).
+
+Puis dans l'interface (<http://localhost:3000>), **Paramètres → cocher « Webhook actif »** (l'URL par défaut `http://localhost:4000/webhook` et le secret `demo-secret-zzzz` correspondent déjà). Publier une note : l'orchestrateur affiche dans sa console le flux de l'agent (messages, outils appelés, autorisations, mails), les mails apparaissent dans `agent/outbox/*.eml` (ouvrables avec n'importe quel client mail) et l'annotation s'affiche sous la note.
+
+### Configuration (`agent/.env`)
+
+| Variable | Défaut | Rôle |
+|---|---|---|
+| `PORT` | `4000` | Webhook et serveur MCP messagerie |
+| `WEBHOOK_SECRET` | `demo-secret-zzzz` | Doit être égal au secret des Paramètres de l'application |
+| `APP_MCP_URL` / `APP_MCP_TOKEN` | `http://localhost:3000/mcp` / `demo-agent-yyyy` | MCP de l'application, avec le token `agent-autonome` (lecture + annotation) |
+| `MESSAGERIE_TOKEN` | `demo-mail-wwww` | Token du MCP messagerie |
+| `COPILOT_BIN` / `COPILOT_ARGS` | `copilot` / `--acp --stdio` | Commande de Copilot CLI ; ajouter ici les filtres d'outils (`--available-tools`, `--excluded-tools`) |
+| `WORKSPACE_DIR` | `./workspace` | Dossier de travail de Copilot CLI (persona + skill) |
+| `OUTBOX_DIR` | `./outbox` | Mails simulés |
+| `SESSION_TIMEOUT_S` | `180` | Délai maximal par note, puis annulation |
+
+### Essayer la chaîne sans Copilot CLI
+
+Un faux agent (`agent/test/faux-copilot.js`) parle ACP et appelle vraiment les deux serveurs MCP, avec des règles simples (arrivée, confidentiel, information). Utile pour vérifier l'installation sans consommer de quota Copilot :
+
+Copilot CLI est lancé depuis `agent/workspace/` : le chemin du faux agent doit donc être **absolu**. Dans `agent/.env` :
+
+```
+COPILOT_BIN=node
+COPILOT_ARGS=C:\chemin\vers\ia-playground\agent\test\faux-copilot.js
+```
+
+puis `npm run start:agent` comme d'habitude.
+
+### Garde-fous
+
+- Webhook sans secret valide : `401`.
+- L'orchestrateur **autorise** les outils des serveurs `appli-rh` et `messagerie`, et **refuse** tout le reste (shell, fichiers, réseau), en affichant `✘ REFUSÉ` dans sa console.
+- Le token `agent-autonome` ne permet que de lire et d'annoter : l'application refuse toute création.
+
+### À vérifier avec votre version de Copilot CLI
+
+Le support ACP de Copilot CLI est en préversion ; je n'ai pas pu le tester ici. Points à contrôler au premier essai :
+
+1. Copilot CLI accepte les serveurs MCP transmis à l'ouverture de session ACP (c'est ce que fait l'orchestrateur). Sinon, les déclarer dans la configuration MCP de Copilot CLI sous les noms `appli-rh` et `messagerie`.
+2. Copilot CLI lit `AGENTS.md` et les skills de `.github/skills/` dans le dossier de travail. Sinon, injecter la persona et la procédure dans le prompt (fonction `promptNote` de `agent/src/acp.js`).
+3. Le format des demandes d'autorisation : la politique reconnaît un outil MCP à son nom ou titre (`appli-rh-…`, `messagerie/…`). Si un outil légitime est refusé, la console l'indique (`✘ REFUSÉ … ne provient ni de appli-rh ni de messagerie`) : adapter `agent/src/autorisations.js`.
+
 ## Tester le webhook à la main
 
 1. Dans **Paramètres**, cocher « Webhook actif ».
-2. Publier une note depuis l'interface : le panneau « Sous le capot » affiche le POST émis (URL, payload, code de réponse). Sans agent à l'écoute sur le port 4000, la réponse indique une erreur de connexion, ce qui est normal tant que `agent/` n'existe pas.
+2. Publier une note depuis l'interface : le panneau « Sous le capot » affiche le POST émis (URL, payload, code de réponse). Sans agent à l'écoute sur le port 4000, la réponse indique une erreur de connexion, ce qui est normal.
 
 ## Brancher GitHub Copilot (VS Code) sur le serveur MCP
 
@@ -144,6 +205,10 @@ app/                 Application RH (Express), serveur MCP, webhook, interface
   config/            tokens.json, annuaire.json
   data/db.json       base JSON (créée au lancement)
   test/              tests
-agent/               (à venir) orchestrateur + Copilot CLI en ACP + messagerie
+agent/               Orchestrateur, client ACP, MCP messagerie
+  src/               index.js, acp.js, autorisations.js, messagerie.js, file.js, console.js, config.js
+  workspace/         AGENTS.md (persona) et .github/skills/routage-notes/
+  outbox/            mails simulés (.eml)
+  test/              tests + faux Copilot CLI
 vscode-demo/         configuration MCP pour VS Code (.vscode/mcp.json) ; agent RH et skills à venir
 ```

@@ -2,8 +2,9 @@
   "name": "demo-ia-mcp",
   "private": true,
   "scripts": {
-    "install:all": "npm --prefix app install",
+    "install:all": "npm --prefix app install && npm --prefix agent install",
     "start": "npm --prefix app start",
-    "test": "npm --prefix app test"
+    "start:agent": "npm --prefix agent start",
+    "test": "npm --prefix app test && npm --prefix agent test"
   }
 }
