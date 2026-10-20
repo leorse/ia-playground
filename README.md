@@ -9,7 +9,8 @@ La spécification complète est dans `spec-plateforme-demo-ia.md` (v0.2).
 | Composant | Dossier | État |
 |---|---|---|
 | Application RH + serveur MCP + webhook | `app/` | ✅ disponible |
-| Agent autonome (orchestrateur + Copilot CLI en ACP + messagerie) | `agent/` | ✅ disponible (testé avec un faux Copilot CLI, pas avec le vrai) |
+| Faux serveur de messagerie (MCP + client mail web) | `mail/` | ✅ disponible |
+| Agent autonome (orchestrateur + Copilot CLI en ACP) | `agent/` | ✅ disponible (testé avec un faux Copilot CLI, pas avec le vrai) |
 | Agent RH et skills pour VS Code | `vscode-demo/` | ✅ disponible (non testé dans VS Code) |
 
 ## Prérequis
@@ -26,7 +27,7 @@ Il n'y a **pas de compilation** : c'est du JavaScript exécuté tel quel, sans b
 npm run install:all
 ```
 
-(équivalent à `npm install` dans `app/` puis dans `agent/`)
+(équivalent à `npm install` dans `app/`, `mail/` puis `agent/`)
 
 ## Lancement
 
@@ -41,6 +42,14 @@ ou, sous Windows, double-clic / commande sur le script qui installe les dépenda
 ```cmd
 demarrer-app.cmd
 ```
+
+**Tout lancer d'un coup** (application + messagerie + agent autonome, sortie préfixée dans un seul terminal) :
+
+```cmd
+npm run start:all
+```
+
+ou `demarrer-tout.cmd` (installe les dépendances au besoin, crée `agent/.env`). Ctrl+C arrête les trois.
 
 L'application est alors disponible sur :
 
@@ -57,10 +66,11 @@ Les données sont stockées dans `app/data/db.json` (créé au premier lancement
 npm test
 ```
 
-Deux séries de tests, sans Copilot ni réseau :
+Trois séries de tests, sans Copilot ni réseau :
 
-- `app/` (port 3999, base jetable) : refus sans token, outils MCP, droits par token, webhook, réinitialisation.
-- `agent/` (ports 3994 et 4994) : politique d'autorisation, file d'attente, rejet d'un webhook sans secret, et la **chaîne complète** (webhook → orchestrateur → session ACP → appels MCP → `.eml` → annotation) avec un faux Copilot CLI (`agent/test/faux-copilot.js`).
+- `app/` (port 3999, base jetable) : refus sans token, outils MCP, droits par token, webhook, suivi de l'agent, réinitialisation.
+- `mail/` (port 5993) : MCP et token, mails visibles dans l'API, HTML conservé, erreurs explicites, doublons.
+- `agent/` (ports 3994, 4994 et 5994) : politique d'autorisation, file d'attente, rejet d'un webhook sans secret, et la **chaîne complète** (webhook → orchestrateur → session ACP → appels MCP → `.eml` → annotation) avec un faux Copilot CLI (`agent/test/faux-copilot.js`).
 
 ## Utiliser l'interface
 
@@ -68,7 +78,9 @@ Deux séries de tests, sans Copilot ni réseau :
 - **Personnel / Tâches** : fiches et tâches (les schémas Mermaid sont dessinés).
 - **Notes** : zone de saisie libre. Les annotations de l'agent autonome s'affichent sous chaque note.
 - **Paramètres** : interrupteur du webhook (désactivé par défaut), URL de l'agent (`http://localhost:4000/webhook`), secret partagé.
-- **Panneau « Sous le capot »** (à droite) : appels MCP reçus, refus de droits et webhooks émis, en direct.
+- **Messagerie** : le client mail de démonstration (voir ci-dessous) intégré dans l'interface.
+- **Panneau « Sous le capot »** (à droite) : appels MCP reçus, refus de droits, webhooks émis et **étapes de l'agent autonome** (🤖), en direct.
+- Sur chaque note, un **badge** suit l'agent : « en attente », « traite cette note… » (clignotant), « traitée par l'agent », ou « échec » / « délai dépassé ».
 
 ## Voir le serveur MCP avec curl
 
@@ -122,6 +134,17 @@ curl -s http://localhost:3000/mcp -H "Content-Type: application/json" -H "Accept
 
 Sans en-tête `Authorization`, le serveur répond `401`.
 
+## Serveur de messagerie (faux)
+
+Un petit service indépendant (`mail/`, port 5000) joue le rôle de serveur de mail. Il expose **deux choses** :
+
+- un **serveur MCP** `messagerie` (`http://localhost:5000/mcp`, token `demo-mail-wwww`) avec les outils `envoyer_mail` et `lister_mails_envoyes` : c'est ce que l'agent autonome appelle pour prévenir les gens ;
+- un **client mail web** (`http://localhost:5000`, aussi intégré dans l'onglet **Messagerie** de l'application) : la liste des mails à gauche, le contenu HTML du mail sélectionné à droite. Un nouveau mail apparaît en direct, en surbrillance, sans recharger la page. Le contenu est affiché dans un cadre isolé (sans scripts).
+
+Le corps d'un mail est du HTML simple (`<p>`, `<ul>`, `<table>`…) ; du texte brut est converti automatiquement. Chaque mail est aussi écrit en `.eml` dans `mail/outbox/`. Le bouton « Vider la boîte » (ou « Réinitialiser la démo » de l'application) supprime les mails.
+
+Lancement seul : `npm run start:mail` ou `demarrer-mail.cmd`.
+
 ## Agent RH dans VS Code
 
 1. Démarrer l'application (`npm start`).
@@ -141,20 +164,26 @@ Les emplacements `.github/agents/*.agent.md` et `.github/skills/<nom>/SKILL.md` 
 
 ## Agent autonome
 
-L'agent autonome se compose de **l'orchestrateur** (`agent/`, Node.js) et de **Copilot CLI** qu'il pilote en ACP (`copilot --acp --stdio`). Copilot CLI est le cerveau (LLM, boucle d'outils, lecture de la persona et des skills dans `agent/workspace/`) ; l'orchestrateur reçoit le webhook, ouvre une session ACP par note, répond aux demandes d'autorisation et fournit l'outil d'envoi de mail.
+L'agent autonome se compose de **l'orchestrateur** (`agent/`, Node.js) et de **Copilot CLI** qu'il pilote en ACP (`copilot --acp --stdio`). Copilot CLI est le cerveau (LLM, boucle d'outils, lecture de la persona et des skills dans `agent/workspace/`) ; l'orchestrateur reçoit le webhook, ouvre une session ACP par note, répond aux demandes d'autorisation et fait remonter l'avancement dans l'application. L'envoi de mail passe par le serveur de messagerie (`mail/`), appelé par l'agent via MCP.
 
 ### Lancement
 
-Dans **deux terminaux** (l'application d'abord) :
+Le plus simple : `npm run start:all` (ou `demarrer-tout.cmd`). Sinon, dans **trois terminaux** :
 
 ```cmd
 npm start
+npm run start:mail
 npm run start:agent
 ```
 
-ou sous Windows : `demarrer-app.cmd` puis `demarrer-agent.cmd` (ce dernier crée `agent/.env` depuis `agent/.env.example` s'il n'existe pas).
+ou sous Windows : `demarrer-app.cmd`, `demarrer-mail.cmd` puis `demarrer-agent.cmd` (ce dernier crée `agent/.env` depuis `agent/.env.example` s'il n'existe pas).
 
-Puis dans l'interface (<http://localhost:3000>), **Paramètres → cocher « Webhook actif »** (l'URL par défaut `http://localhost:4000/webhook` et le secret `demo-secret-zzzz` correspondent déjà). Publier une note : l'orchestrateur affiche dans sa console le flux de l'agent (messages, outils appelés, autorisations, mails), les mails apparaissent dans `agent/outbox/*.eml` (ouvrables avec n'importe quel client mail) et l'annotation s'affiche sous la note.
+Puis dans l'interface (<http://localhost:3000>), **Paramètres → cocher « Webhook actif »** (l'URL par défaut `http://localhost:4000/webhook` et le secret `demo-secret-zzzz` correspondent déjà). Publier une note, puis suivre :
+
+- **sur la note** : le badge « 🤖 l'agent traite cette note… » puis « ✓ traitée par l'agent », et l'annotation qui apparaît dessous ;
+- **dans « Sous le capot »** : chaque étape de l'agent (🤖) et chaque appel MCP ;
+- **dans l'onglet Messagerie** : les mails qui arrivent en direct ;
+- **dans la console de l'orchestrateur** : le flux détaillé (messages, outils, autorisations).
 
 ### Configuration (`agent/.env`)
 
@@ -162,16 +191,16 @@ Puis dans l'interface (<http://localhost:3000>), **Paramètres → cocher « Web
 |---|---|---|
 | `PORT` | `4000` | Webhook et serveur MCP messagerie |
 | `WEBHOOK_SECRET` | `demo-secret-zzzz` | Doit être égal au secret des Paramètres de l'application |
+| `APP_URL` | `http://localhost:3000` | Où l'orchestrateur signale l'avancement de l'agent |
 | `APP_MCP_URL` / `APP_MCP_TOKEN` | `http://localhost:3000/mcp` / `demo-agent-yyyy` | MCP de l'application, avec le token `agent-autonome` (lecture + annotation) |
-| `MESSAGERIE_TOKEN` | `demo-mail-wwww` | Token du MCP messagerie |
+| `MAIL_MCP_URL` / `MESSAGERIE_TOKEN` | `http://localhost:5000/mcp` / `demo-mail-wwww` | MCP du serveur de messagerie |
 | `COPILOT_BIN` / `COPILOT_ARGS` | `copilot` / `--acp --stdio` | Commande de Copilot CLI ; ajouter ici les filtres d'outils (`--available-tools`, `--excluded-tools`) |
 | `WORKSPACE_DIR` | `./workspace` | Dossier de travail de Copilot CLI (persona + skill) |
-| `OUTBOX_DIR` | `./outbox` | Mails simulés |
 | `SESSION_TIMEOUT_S` | `180` | Délai maximal par note, puis annulation |
 
 ### Essayer la chaîne sans Copilot CLI
 
-Un faux agent (`agent/test/faux-copilot.js`) parle ACP et appelle vraiment les deux serveurs MCP, avec des règles simples (arrivée, confidentiel, information). Utile pour vérifier l'installation sans consommer de quota Copilot :
+Un faux agent (`agent/test/faux-copilot.js`) parle ACP et appelle vraiment les deux serveurs MCP (application et messagerie), avec des règles simples (arrivée, confidentiel, information). Utile pour vérifier l'installation sans consommer de quota Copilot :
 
 Copilot CLI est lancé depuis `agent/workspace/` : le chemin du faux agent doit donc être **absolu**. Dans `agent/.env` :
 
@@ -180,7 +209,7 @@ COPILOT_BIN=node
 COPILOT_ARGS=C:\chemin\vers\ia-playground\agent\test\faux-copilot.js
 ```
 
-puis `npm run start:agent` comme d'habitude.
+puis `npm run start:all` comme d'habitude.
 
 ### Garde-fous
 
@@ -222,10 +251,11 @@ app/                 Application RH (Express), serveur MCP, webhook, interface
   config/            tokens.json, annuaire.json
   data/db.json       base JSON (créée au lancement)
   test/              tests
-agent/               Orchestrateur, client ACP, MCP messagerie
-  src/               index.js, acp.js, autorisations.js, messagerie.js, file.js, console.js, config.js
+mail/                Faux serveur de messagerie : MCP + client mail web à deux colonnes
+  src/               server.js, mcp.js, store.js ; public/ : client web ; outbox/ : .eml
+agent/               Orchestrateur et client ACP
+  src/               index.js, acp.js, autorisations.js, rapport.js, file.js, console.js, config.js
   workspace/         AGENTS.md (persona) et .github/skills/routage-notes/
-  outbox/            mails simulés (.eml)
   test/              tests + faux Copilot CLI
 vscode-demo/         Espace de travail VS Code
   .vscode/mcp.json   connexion au serveur MCP appli-rh

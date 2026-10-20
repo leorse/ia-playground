@@ -25,6 +25,19 @@ function ligneTache(t, niveau = 0) {
     <span class="meta">${t.id} · ${fmt(t.debut || t.echeance)} · ${esc(t.assigne || 'non assignée')}</span> ${badgesTache(t)}</div>`;
 }
 
+const ETATS_AGENT = {
+  en_attente: ['warn pulse', '🤖 en attente de l’agent…'],
+  en_cours: ['warn pulse', '🤖 l’agent traite cette note…'],
+  termine: ['ok', '✓ traitée par l’agent'],
+  echec: ['ko', '⚠ échec du traitement'],
+  delai: ['ko', '⏱ délai dépassé'],
+};
+function badgeAgent(id) {
+  const s = etat.agent?.[id];
+  const [classe, texte] = ETATS_AGENT[s?.etat] || [];
+  return texte ? `<span class="badge ${classe}" title="${esc(s.detail || '')}">${texte}</span>` : '';
+}
+
 function blocNote(n, lien = true) {
   const ann = n.annotations.map((a) => `
     <div class="annotation ${a.confidentiel ? 'confidentiel' : ''}">
@@ -34,7 +47,7 @@ function blocNote(n, lien = true) {
       ${a.alertes?.map((x) => `<div><span class="badge warn">alerte</span> ${esc(x)}</div>`).join('') || ''}
     </div>`).join('');
   return `<div class="carte"><h3>${lien ? `<a href="#/notes/${n.id}">` : ''}${esc(n.titre || '(sans titre)')}${lien ? '</a>' : ''}
-    <span class="meta">${n.id} · ${esc(n.auteur)} · ${fmt(n.cree_le.slice(0, 16))}</span></h3>
+    <span class="meta">${n.id} · ${esc(n.auteur)} · ${fmt(n.cree_le.slice(0, 16))}</span> ${badgeAgent(n.id)}</h3>
     <div>${md(n.contenu)}</div>${ann}</div>`;
 }
 
@@ -90,6 +103,11 @@ const vues = {
       <p><button id="publier">Publier</button></p></div>
       ${etat.notes.slice().reverse().map((n) => blocNote(n)).join('') || '<span class="meta">Aucune note</span>'}`;
   },
+  messagerie() {
+    const url = `${location.protocol}//${location.hostname}:5000`;
+    return `<p class="meta">Client mail de démonstration (<a href="${url}" target="_blank" rel="noopener">ouvrir dans un onglet</a>). Les mails envoyés par l’agent autonome y apparaissent en direct.</p>
+      <iframe class="messagerie" src="${url}" title="Messagerie"></iframe>`;
+  },
   parametres() {
     const w = etat.parametres.webhook;
     return `<div class="carte"><h2>Notifier l'agent autonome (webhook)</h2>
@@ -105,6 +123,7 @@ function rendre() {
   document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('actif', a.getAttribute('href') === `#/${page}`));
   // ne pas écraser une saisie en cours dans le formulaire de note
   const saisie = $('#contenu')?.value;
+  if (page === 'messagerie' && $('#vue iframe.messagerie')) { rendreJournal(); return; } // l'iframe se met à jour seule
   $('#vue').innerHTML = (vues[page || 'dashboard'] || vues.dashboard)(id);
   if (saisie && $('#contenu')) $('#contenu').value = saisie;
   rendreJournal();
@@ -115,6 +134,9 @@ function rendreJournal() {
   const rep = (j) => (typeof j === 'string' ? j : JSON.stringify(j));
   $('#journal').innerHTML = etat.journal.slice().reverse().map((e) => {
     const h = e.date.slice(11, 19);
+    if (e.type === 'agent') {
+      return `<div class="j"><span class="quoi">🤖 agent</span> <span class="meta">${h}${e.note_id ? ` · ${esc(e.note_id)}` : ''}</span> ${esc(e.texte || '')}</div>`;
+    }
     if (e.type === 'webhook') {
       return `<div class="j"><span class="quoi">🔔 webhook</span> <span class="meta">${h}</span> → ${esc(e.url)} <span class="badge ${e.statut === 202 || e.statut === 200 ? 'ok' : 'ko'}">${esc(e.statut ?? e.erreur)}</span><pre>${esc(JSON.stringify(e.payload))}</pre></div>`;
     }

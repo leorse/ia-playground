@@ -1,10 +1,13 @@
 {
   "name": "demo-ia-mcp",
   "private": true,
+  "type": "module",
   "scripts": {
-    "install:all": "npm --prefix app install && npm --prefix agent install",
+    "install:all": "npm --prefix app install && npm --prefix mail install && npm --prefix agent install",
     "start": "npm --prefix app start",
+    "start:mail": "npm --prefix mail start",
     "start:agent": "npm --prefix agent start",
-    "test": "npm --prefix app test && npm --prefix agent test"
+    "start:all": "node scripts/demarrer-tout.js",
+    "test": "npm --prefix app test && npm --prefix mail test && npm --prefix agent test"
   }
 }

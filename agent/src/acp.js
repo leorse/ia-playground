@@ -31,7 +31,7 @@ export function promptNote({ noteId, auteur, date = new Date() }) {
  * Client ACP : pilote un agent (Copilot CLI) et ouvre une session par note.
  * `lancer()` renvoie { cible, termine, arreter } ; `cible` est un flux ACP (ou une AgentApp en test).
  */
-export function creerClientAcp({ lancer, serveursMcp, workspaceDir, timeoutMs }) {
+export function creerClientAcp({ lancer, serveursMcp, workspaceDir, timeoutMs, rapport = { activite() {} } }) {
   let processus = null;
   let connexion = null;
 
@@ -74,7 +74,7 @@ export function creerClientAcp({ lancer, serveursMcp, workspaceDir, timeoutMs })
       for (;;) {
         const m = await session.nextUpdate();
         if (m.kind === 'stop') { arret = m.stopReason; break; }
-        afficher(m.update);
+        afficher(m.update, (texte) => rapport.activite(noteId, texte));
       }
     } finally {
       clearTimeout(minuteur);
@@ -91,12 +91,15 @@ export function creerClientAcp({ lancer, serveursMcp, workspaceDir, timeoutMs })
   };
 }
 
-function afficher(u) {
+function afficher(u, signaler) {
   switch (u.sessionUpdate) {
     case 'agent_message_chunk': if (u.content?.type === 'text') trace.agent(u.content.text); break;
-    case 'tool_call': process.stdout.write('\n'); trace.outil(u.title, u.rawInput); break;
+    case 'tool_call': process.stdout.write('\n'); trace.outil(u.title, u.rawInput); signaler(`🔧 ${u.title}`); break;
     case 'tool_call_update':
-      if (u.status === 'completed' || u.status === 'failed') trace.resultat(u.status, texteDe(u.content) || JSON.stringify(u.rawOutput ?? ''));
+      if (u.status === 'completed' || u.status === 'failed') {
+        trace.resultat(u.status, texteDe(u.content) || JSON.stringify(u.rawOutput ?? ''));
+        if (u.status === 'failed') signaler(`⚠ outil en échec : ${u.title ?? u.toolCallId}`);
+      }
       break;
     default: break;
   }

@@ -96,3 +96,15 @@ test('réinitialisation', async () => {
   assert.equal(etat.notes.length, 0);
   assert.equal(etat.personnel.length, 5);
 });
+
+test('suivi de l’agent : statut et activité visibles dans l’état et le journal', async () => {
+  const post = (path, body) => fetch(`${URL_APP}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  assert.equal((await post('/api/agent/statut', { note_id: 'N-0009' })).status, 400);
+  await post('/api/agent/statut', { note_id: 'N-0009', etat: 'en_cours' });
+  await post('/api/agent/activite', { note_id: 'N-0009', texte: '🔧 lire_note' });
+  const etat = await (await fetch(`${URL_APP}/api/state`)).json();
+  assert.equal(etat.agent['N-0009'].etat, 'en_cours');
+  assert.ok(etat.journal.some((j) => j.type === 'agent' && j.texte === '🔧 lire_note'));
+  await fetch(`${URL_APP}/api/reinitialiser`, { method: 'POST' });
+  assert.deepEqual((await (await fetch(`${URL_APP}/api/state`)).json()).agent, {});
+});

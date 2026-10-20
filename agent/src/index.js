@@ -2,12 +2,12 @@ import express from 'express';
 import { config } from './config.js';
 import { creerFile } from './file.js';
 import { creerClientAcp, lancerCopilot } from './acp.js';
-import { routeurMessagerie } from './messagerie.js';
+import { rapport } from './rapport.js';
 import { trace } from './console.js';
 
 const serveursMcp = [
   { type: 'http', name: 'appli-rh', url: config.appMcpUrl, headers: [{ name: 'Authorization', value: `Bearer ${config.appMcpToken}` }] },
-  { type: 'http', name: 'messagerie', url: `http://localhost:${config.port}/mcp`, headers: [{ name: 'Authorization', value: `Bearer ${config.messagerieToken}` }] },
+  { type: 'http', name: 'messagerie', url: config.mailMcpUrl, headers: [{ name: 'Authorization', value: `Bearer ${config.messagerieToken}` }] },
 ];
 
 const acp = creerClientAcp({
@@ -15,13 +15,19 @@ const acp = creerClientAcp({
   serveursMcp,
   workspaceDir: config.workspaceDir,
   timeoutMs: config.sessionTimeoutMs,
+  rapport,
 });
 
 const file = creerFile(async (evenement) => {
+  const id = evenement.note.id;
+  await rapport.etat(id, 'en_cours', 'Session ACP ouverte');
   try {
-    await acp.traiterNote({ noteId: evenement.note.id, auteur: evenement.auteur });
+    const { delaiDepasse, stopReason } = await acp.traiterNote({ noteId: id, auteur: evenement.auteur });
+    if (delaiDepasse) await rapport.etat(id, 'delai', `Annulée après ${config.sessionTimeoutMs / 1000} s`);
+    else await rapport.etat(id, 'termine', `Fin : ${stopReason}`);
   } catch (e) {
-    trace.erreur(`Échec du traitement de ${evenement.note.id} : ${e.message}`);
+    trace.erreur(`Échec du traitement de ${id} : ${e.message}`);
+    await rapport.etat(id, 'echec', e.message);
   }
 });
 
@@ -36,13 +42,13 @@ app.post('/webhook', express.json(), (req, res) => {
   if (evenement?.evenement !== 'note.creee' || !evenement.note?.id) return res.status(400).json({ error: 'événement non géré' });
   res.status(202).json({ accepte: true });
   trace.webhook(`${evenement.evenement} ${evenement.note.id} « ${evenement.note.extrait ?? ''} » (file : ${file.taille + 1})`);
+  rapport.etat(evenement.note.id, 'en_attente', 'Webhook reçu');
   file.ajouter(evenement);
 });
 
-app.use(routeurMessagerie());
-
 app.listen(config.port, () => {
-  console.log(`Orchestrateur : webhook http://localhost:${config.port}/webhook · messagerie MCP http://localhost:${config.port}/mcp`);
+  console.log(`Orchestrateur : webhook http://localhost:${config.port}/webhook`);
+  console.log(`MCP : application ${config.appMcpUrl} · messagerie ${config.mailMcpUrl}`);
   console.log(`Copilot CLI : ${config.copilotBin} ${config.copilotArgs.join(' ')}  (dossier de travail : ${config.workspaceDir})`);
 });
 

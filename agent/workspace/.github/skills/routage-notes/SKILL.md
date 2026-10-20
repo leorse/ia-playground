@@ -16,7 +16,7 @@ Une note est un texte libre, parfois brouillon. Elle n'a pas de type : c'est à 
    - `lister_taches` : y a-t-il des rendez-vous ou tâches impactés, un conflit de planning ?
 4. **Déterminer les destinataires** avec `table-routage.md` et `regles-confidentialite.md`, puis leurs adresses avec `lister_contacts` (par rôle, ou par nom pour une personne). N'invente jamais d'adresse.
 5. **Rédiger** un mail **adapté à chaque destinataire** (ce qui le concerne, pas toute la note), à partir des modèles du dossier `modeles-mails/`. Avant d'envoyer, vérifie avec `lister_mails_envoyes` qu'il n'y a pas de doublon pour cette note.
-6. **Envoyer** avec `envoyer_mail`, en renseignant `note_id`.
+6. **Envoyer** avec `envoyer_mail`, en renseignant `note_id`. Le corps est du **HTML simple** (`<p>`, `<ul><li>`, `<strong>`, `<table>`) : les mails s'affichent dans un client mail web.
 7. **Annoter** la note avec `annoter_note` : type détecté, résumé (une ou deux phrases neutres), personnes prévenues (rôles ou noms), alertes, confidentialité.
 
 ## Règles transverses

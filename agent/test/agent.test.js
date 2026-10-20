@@ -1,7 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,8 +35,8 @@ test('file : un traitement à la fois, dans l’ordre', async () => {
 });
 
 /* ---------- Chaîne complète avec un faux Copilot CLI ---------- */
-const PORT_APP = 3994, PORT_AGENT = 4994;
-let app, orchestrateur, sortie = '', outbox;
+const PORT_APP = 3994, PORT_AGENT = 4994, PORT_MAIL = 5994;
+let app, mail, orchestrateur, sortie = '';
 
 const attendre = async (cond, ms = 15000) => {
   const fin = Date.now() + ms;
@@ -47,21 +47,21 @@ const post = (url, body, headers = {}) => fetch(url, { method: 'POST', headers: 
 
 before(async () => {
   const tmp = mkdtempSync(join(tmpdir(), 'agent-'));
-  outbox = join(tmp, 'outbox');
   app = spawn('node', ['src/server.js'], { cwd: '../app', env: { ...process.env, PORT: PORT_APP, DB_FILE: join(tmp, 'db.json') }, stdio: 'ignore' });
+  mail = spawn('node', ['src/server.js'], { cwd: '../mail', env: { ...process.env, PORT: PORT_MAIL, MAIL_DATA_FILE: join(tmp, 'mails.json'), MAIL_OUTBOX_DIR: join(tmp, 'outbox') }, stdio: 'ignore' });
   orchestrateur = spawn('node', ['src/index.js'], {
-    env: { ...process.env, PORT: PORT_AGENT, APP_MCP_URL: `http://localhost:${PORT_APP}/mcp`, COPILOT_BIN: 'node', COPILOT_ARGS: fileURLToPath(new URL('./faux-copilot.js', import.meta.url)), OUTBOX_DIR: outbox, WORKSPACE_DIR: tmp, SESSION_TIMEOUT_S: '30' },
+    env: { ...process.env, PORT: PORT_AGENT, APP_URL: `http://localhost:${PORT_APP}`, APP_MCP_URL: `http://localhost:${PORT_APP}/mcp`, MAIL_MCP_URL: `http://localhost:${PORT_MAIL}/mcp`, COPILOT_BIN: 'node', COPILOT_ARGS: fileURLToPath(new URL('./faux-copilot.js', import.meta.url)), WORKSPACE_DIR: tmp, SESSION_TIMEOUT_S: '30' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   orchestrateur.stdout.on('data', (d) => (sortie += d));
   orchestrateur.stderr.on('data', (d) => (sortie += d));
-  await attendre(async () => { try { await fetch(`http://localhost:${PORT_APP}/api/state`); await fetch(`http://localhost:${PORT_AGENT}/`); return true; } catch { return false; } });
+  await attendre(async () => { try { await fetch(`http://localhost:${PORT_APP}/api/state`); await fetch(`http://localhost:${PORT_MAIL}/api/mails`); await fetch(`http://localhost:${PORT_AGENT}/`); return true; } catch { return false; } });
   await post(`http://localhost:${PORT_APP}/api/parametres`, { webhook: { actif: true, url: `http://localhost:${PORT_AGENT}/webhook` } });
 });
-after(() => { app?.kill(); orchestrateur?.kill(); });
+after(() => { app?.kill(); mail?.kill(); orchestrateur?.kill(); });
 
 const etatApp = async () => (await fetch(`http://localhost:${PORT_APP}/api/state`)).json();
-const mails = () => { try { return readdirSync(outbox).filter((f) => f.endsWith('.eml')); } catch { return []; } };
+const mails = async () => (await fetch(`http://localhost:${PORT_MAIL}/api/mails`)).json();
 
 test('webhook sans secret valide : rejeté', async () => {
   const r = await post(`http://localhost:${PORT_AGENT}/webhook`, { evenement: 'note.creee', note: { id: 'N-0001' } }, { 'X-Webhook-Secret': 'faux' });
@@ -73,11 +73,16 @@ test('note d’arrivée : session ACP, mails .eml, annotation, shell refusé', a
   const note = await attendre(async () => (await etatApp()).notes.find((n) => n.annotations.length));
   assert.equal(note.annotations[0].type_detecte, 'arrivee');
   assert.equal(note.annotations[0].auteur, 'agent-autonome');
-  const fichiers = mails();
-  assert.equal(fichiers.length, 2);
-  const eml = readFileSync(join(outbox, fichiers[0]), 'utf8');
-  assert.match(eml, /^From: .*\r\nTo: \S+@exemple\.local/m);
-  assert.match(eml, /X-Note-Id: N-0001/);
+  const recus = await mails();
+  assert.equal(recus.length, 2);
+  assert.deepEqual(recus.map((m) => m.a[0]).sort(), ['it@exemple.local', 'sg@exemple.local']);
+  assert.ok(recus.every((m) => m.note_id === 'N-0001'));
+  // l'état de l'agent remonte dans l'application
+  const suivi = await attendre(async () => (await etatApp()).agent['N-0001']?.etat === 'termine');
+  assert.ok(suivi);
+  const etat = await etatApp();
+  assert.ok(etat.journal.some((j) => j.type === 'agent' && j.etat === 'en_cours'));
+  assert.ok(etat.journal.some((j) => j.type === 'agent' && /lire_note/.test(j.texte)));
   assert.match(sortie, /REFUSÉ/);
   assert.doesNotMatch(sortie, /shell autorisé/);
 });
@@ -87,7 +92,7 @@ test('note confidentielle : un seul mail, aux RH', async () => {
   const note = await attendre(async () => (await etatApp()).notes.find((n) => n.id === 'N-0002' && n.annotations.length));
   assert.equal(note.annotations[0].type_detecte, 'confidentiel');
   assert.ok(note.annotations[0].confidentiel);
-  const nouveaux = mails().filter((f) => readFileSync(join(outbox, f), 'utf8').includes('N-0002'));
+  const nouveaux = (await mails()).filter((m) => m.note_id === 'N-0002');
   assert.equal(nouveaux.length, 1);
-  assert.match(readFileSync(join(outbox, nouveaux[0]), 'utf8'), /To: rh@exemple\.local/);
+  assert.deepEqual(nouveaux[0].a, ['rh@exemple.local']);
 });

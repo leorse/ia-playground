@@ -28,3 +28,7 @@ header button { background:transparent; color:var(--ko); border-color:var(--ko);
 .j.refus { color:var(--ko); } .j .quoi { font-weight:600; }
 .mermaid { background:#fff; padding:8px; border-radius:6px; overflow:auto; } pre { overflow:auto; }
 label { display:block; margin:8px 0 2px; }
+
+.badge.pulse { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .45; } }
+iframe.messagerie { width:100%; height:calc(100vh - 150px); min-height:420px; border:1px solid var(--bord); border-radius:8px; background:var(--carte); }

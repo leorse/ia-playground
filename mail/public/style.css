@@ -1,0 +1,24 @@
+:root { --bg:#f6f7f9; --fg:#1d2330; --carte:#fff; --bord:#dde1e8; --accent:#2f6fed; --sel:#e8f0ff; --nouveau:#fff6d6; }
+@media (prefers-color-scheme: dark) { :root { --bg:#14171d; --fg:#e6e9ef; --carte:#1d222b; --bord:#323946; --accent:#6c9bff; --sel:#243556; --nouveau:#4a3f14; } }
+* { box-sizing: border-box; }
+html, body { height:100%; margin:0; }
+body { font:14px/1.4 system-ui,sans-serif; background:var(--bg); color:var(--fg); display:flex; flex-direction:column; }
+header { display:flex; align-items:center; gap:12px; padding:8px 14px; background:var(--carte); border-bottom:1px solid var(--bord); }
+header button { margin-left:auto; font:inherit; padding:4px 10px; border-radius:6px; border:1px solid var(--bord); background:transparent; color:inherit; cursor:pointer; }
+.meta { opacity:.65; font-size:12px; }
+.client { flex:1; min-height:0; display:grid; grid-template-columns: minmax(260px, 38%) 1fr; }
+#liste { overflow:auto; border-right:1px solid var(--bord); background:var(--carte); }
+#lecture { overflow:auto; padding:16px 20px; display:flex; flex-direction:column; min-width:0; }
+.mail { padding:10px 14px; border-bottom:1px solid var(--bord); cursor:pointer; position:relative; }
+.mail:hover { background:var(--bg); } .mail.selectionne { background:var(--sel); }
+.mail.non-lu .objet { font-weight:700; } .mail.non-lu::before { content:''; position:absolute; left:4px; top:17px; width:6px; height:6px; border-radius:50%; background:var(--accent); }
+.mail.nouveau { animation: apparition 3s ease-out; }
+@keyframes apparition { from { background:var(--nouveau); transform:translateX(-12px); opacity:0; } 20% { opacity:1; transform:none; } }
+.ligne { display:flex; justify-content:space-between; gap:8px; } .objet { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.extrait { opacity:.65; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.badge { font-size:11px; padding:0 6px; border:1px solid var(--bord); border-radius:10px; white-space:nowrap; }
+.vide { opacity:.6; margin:auto; }
+.entete { border-bottom:1px solid var(--bord); padding-bottom:10px; margin-bottom:10px; }
+.entete h2 { margin:0 0 6px; font-size:18px; } .entete div { font-size:13px; } .entete .k { opacity:.6; display:inline-block; width:50px; }
+iframe { flex:1; min-height:240px; width:100%; border:0; background:#fff; border-radius:6px; }
+@media (max-width: 700px) { .client { grid-template-columns: 1fr; grid-template-rows: 40% 60%; } #liste { border-right:0; border-bottom:1px solid var(--bord); } }

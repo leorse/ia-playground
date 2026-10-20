@@ -6,6 +6,9 @@ import { creerServeurMcp } from './mcp.js';
 import { brancherWebhook } from './webhook.js';
 import * as store from './store.js';
 import * as journal from './journal.js';
+import * as agent from './agent.js';
+
+const MAIL_URL = process.env.MAIL_URL || 'http://localhost:5000';
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -32,7 +35,7 @@ app.delete('/mcp', nonSupporte);
 /* ---------- API de l'interface ---------- */
 app.get('/api/state', (_req, res) => {
   const { personnel, taches, notes, parametres } = store.lireTout();
-  res.json({ personnel, taches, notes, parametres, journal: journal.lister() });
+  res.json({ personnel, taches, notes, parametres, agent: agent.lister(), journal: journal.lister() });
 });
 
 app.post('/api/notes', (req, res) => {
@@ -46,9 +49,25 @@ app.post('/api/parametres', (req, res) => {
   res.json(store.parametres());
 });
 
-app.post('/api/reinitialiser', (_req, res) => {
+/* L'orchestrateur de l'agent autonome signale où il en est */
+app.post('/api/agent/statut', (req, res) => {
+  const { note_id, etat } = req.body || {};
+  if (!note_id || !etat) return res.status(400).json({ error: 'note_id et etat requis' });
+  agent.signaler(req.body);
+  res.json({ ok: true });
+});
+app.post('/api/agent/activite', (req, res) => {
+  if (!req.body?.texte) return res.status(400).json({ error: 'texte requis' });
+  agent.activite(req.body);
+  res.json({ ok: true });
+});
+
+app.post('/api/reinitialiser', async (_req, res) => {
   store.reinitialiser();
   journal.vider();
+  agent.vider();
+  // vide aussi la boîte mail de démo si le serveur de messagerie tourne
+  await fetch(`${MAIL_URL}/api/mails`, { method: 'DELETE', signal: AbortSignal.timeout(2000) }).catch(() => {});
   res.json({ ok: true });
 });
 
