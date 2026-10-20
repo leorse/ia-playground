@@ -277,7 +277,8 @@ Le support ACP de Copilot CLI est en préversion ; je n'ai pas pu le tester ici.
 
 1. Copilot CLI accepte les serveurs MCP transmis à l'ouverture de session ACP (c'est ce que fait l'orchestrateur). Sinon, les déclarer dans la configuration MCP de Copilot CLI sous les noms `appli-rh` et `messagerie`.
 2. Copilot CLI lit `AGENTS.md` et les skills de `.github/skills/` dans le dossier de travail. Sinon, injecter la persona et la procédure dans le prompt (fonction `promptNote` de `agent/src/acp.js`).
-3. Le format des demandes d'autorisation : la politique reconnaît un outil MCP à son nom ou titre (`appli-rh-…`, `messagerie/…`). Si un outil légitime est refusé, la console l'indique (`✘ REFUSÉ … ne provient ni de appli-rh ni de messagerie`) : adapter `agent/src/autorisations.js`.
+3. Le format des demandes d'autorisation : Copilot CLI désigne l'outil tantôt avec le serveur (`appli-rh-lire_note`), tantôt par son seul nom (`lire_note`). La politique reconnaît les deux (liste des 16 outils des deux serveurs dans `agent/src/autorisations.js`, vérifiée par un test contre les serveurs réels). Si un outil légitime est refusé, la console l'indique (`✘ REFUSÉ`) et affiche le détail brut de la demande : le coller me permet d'ajuster. **Si vous ajoutez un outil MCP, ajoutez son nom à cette liste.**
+4. Les `description` des fichiers YAML (agent et skills) sont entre guillemets : sans cela, les deux-points qu'elles contiennent font échouer le chargement par Copilot.
 
 ## Vérifier que le webhook fonctionne
 

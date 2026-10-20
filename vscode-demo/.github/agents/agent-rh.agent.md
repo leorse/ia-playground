@@ -1,6 +1,6 @@
 ---
 name: Agent RH
-description: Assistant RH de l'équipe : arrivées, départs, absences, accès et organisation, directement dans l'application RH.
+description: "Assistant RH de l'équipe : arrivées, départs, absences, accès et organisation, directement dans l'application RH."
 tools: ['appli-rh/*']
 ---
 

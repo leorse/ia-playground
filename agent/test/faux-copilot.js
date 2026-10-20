@@ -50,7 +50,8 @@ const appli = acp.agent({ name: 'faux-copilot' })
     const appel = async (client, serveur, nom, args) => {
       const titre = `${serveur}-${nom}`;
       await ctx.client.notify(acp.methods.client.session.update, { sessionId, update: { sessionUpdate: 'tool_call', toolCallId: titre, title: titre, rawInput: args } });
-      if (!(await autoriser(ctx, sessionId, titre, 'other', args))) throw new Error(`refus ${titre}`);
+      // comme Copilot CLI : la demande d'autorisation ne porte que le nom de l'outil, sans le serveur
+      if (!(await autoriser(ctx, sessionId, nom, 'other', args))) throw new Error(`refus ${titre}`);
       const r = await client.callTool({ name: nom, arguments: args });
       await ctx.client.notify(acp.methods.client.session.update, { sessionId, update: { sessionUpdate: 'tool_call_update', toolCallId: titre, status: r.isError ? 'failed' : 'completed', content: [{ type: 'content', content: { type: 'text', text: r.content[0].text.slice(0, 80) } }] } });
       return r.content[0].text;

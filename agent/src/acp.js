@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { Readable, Writable } from 'node:stream';
 import * as acp from '@agentclientprotocol/sdk';
-import { traiterDemande } from './autorisations.js';
+import { traiterDemande, memoriserTitre } from './autorisations.js';
 import { trace } from './console.js';
 
 /** Lance Copilot CLI en mode ACP et renvoie le flux ndjson sur stdin/stdout. */
@@ -94,7 +94,7 @@ export function creerClientAcp({ lancer, serveursMcp, workspaceDir, timeoutMs, r
 function afficher(u, signaler) {
   switch (u.sessionUpdate) {
     case 'agent_message_chunk': if (u.content?.type === 'text') trace.agent(u.content.text); break;
-    case 'tool_call': process.stdout.write('\n'); trace.outil(u.title, u.rawInput); signaler(`🔧 ${u.title}`); break;
+    case 'tool_call': memoriserTitre(u.toolCallId, u.title); process.stdout.write('\n'); trace.outil(u.title, u.rawInput); signaler(`🔧 ${u.title}`); break;
     case 'tool_call_update':
       if (u.status === 'completed' || u.status === 'failed') {
         trace.resultat(u.status, texteDe(u.content) || JSON.stringify(u.rawOutput ?? ''));

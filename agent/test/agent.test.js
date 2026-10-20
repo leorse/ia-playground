@@ -5,7 +5,9 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { decider, reponse } from '../src/autorisations.js';
+import { decider, reponse, memoriserTitre, OUTILS_AUTORISES } from '../src/autorisations.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { creerFile } from '../src/file.js';
 
 test('autorisations : outils MCP autorisés, le reste refusé', () => {
@@ -17,6 +19,31 @@ test('autorisations : outils MCP autorisés, le reste refusé', () => {
   assert.ok(!decider({ title: 'curl appli-rh.evil', kind: 'fetch' }).autoriser);
   assert.ok(!decider({ title: 'autre-serveur-outil', kind: 'other' }).autoriser);
   assert.ok(!decider({ title: 'appli-rhx-outil' }).autoriser);
+});
+
+test('autorisations : nom d’outil seul (sans serveur), comme le envoie Copilot CLI', () => {
+  assert.ok(decider({ toolCallId: 'a', title: 'lire_note' }).autoriser);
+  assert.ok(decider({ toolCallId: 'b', title: 'lister_mails_envoyes', kind: 'other' }).autoriser);
+  assert.ok(decider({ toolCallId: 'c', name: 'envoyer_mail' }).autoriser);
+  assert.ok(!decider({ toolCallId: 'd', title: 'lire_notes_perso' }).autoriser);
+  assert.ok(!decider({ toolCallId: 'e', title: 'lire_note', kind: 'execute' }).autoriser);
+  // titre complet vu dans la notification tool_call, demande d'autorisation sans titre
+  assert.ok(!decider({ toolCallId: 'f' }).autoriser);
+  memoriserTitre('f', 'appli-rh-lire_note');
+  assert.ok(decider({ toolCallId: 'f' }).autoriser);
+});
+
+test('autorisations : tous les outils réels des deux serveurs sont autorisés, et la liste ne contient rien d’autre', async () => {
+  const lister = async (url, token) => {
+    const c = new Client({ name: 'test', version: '1' });
+    await c.connect(new StreamableHTTPClientTransport(new URL(url), { requestInit: { headers: { Authorization: `Bearer ${token}` } } }));
+    const { tools } = await c.listTools();
+    await c.close();
+    return tools.map((t) => t.name);
+  };
+  const reels = [...await lister(`http://localhost:${PORT_APP}/mcp`, 'demo-rh-xxxx'), ...await lister(`http://localhost:${PORT_MAIL}/mcp`, 'demo-mail-wwww')];
+  for (const nom of reels) assert.ok(decider({ toolCallId: nom, title: nom }).autoriser, `${nom} devrait être autorisé`);
+  assert.deepEqual([...reels].sort(), [...OUTILS_AUTORISES].sort());
 });
 
 test('autorisations : choix de l’option ACP', () => {

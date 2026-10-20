@@ -1,6 +1,6 @@
 ---
 name: schema-onboarding
-description: À utiliser quand l'utilisateur demande le schéma ou le diagramme du parcours d'intégration d'une personne : génère un diagramme Mermaid à partir de ses tâches et l'attache à une tâche de l'application RH.
+description: "À utiliser quand l'utilisateur demande le schéma ou le diagramme du parcours d'intégration d'une personne : génère un diagramme Mermaid à partir de ses tâches et l'attache à une tâche de l'application RH."
 ---
 
 # Schéma du parcours d'onboarding

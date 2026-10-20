@@ -1,6 +1,6 @@
 ---
 name: nouvel-arrivant
-description: À utiliser quand l'utilisateur annonce l'arrivée d'une nouvelle personne (embauche, CDD, stage, alternance…) : crée la fiche, les tâches d'accueil, les demandes d'accès et la note d'annonce dans l'application RH.
+description: "À utiliser quand l'utilisateur annonce l'arrivée d'une nouvelle personne (embauche, CDD, stage, alternance…) : crée la fiche, les tâches d'accueil, les demandes d'accès et la note d'annonce dans l'application RH."
 ---
 
 # Accueil d'un nouvel arrivant

@@ -1,6 +1,6 @@
 ---
 name: routage-notes
-description: À utiliser quand une note vient d'être publiée dans l'application RH : l'interpréter (arrivée, départ, absence, logistique, confidentiel, incomplet, information), prévenir les bonnes personnes par mail, puis annoter la note.
+description: "À utiliser quand une note vient d'être publiée dans l'application RH : l'interpréter (arrivée, départ, absence, logistique, confidentiel, incomplet, information), prévenir les bonnes personnes par mail, puis annoter la note."
 ---
 
 # Routage des notes
