@@ -72,6 +72,60 @@ Trois séries de tests, sans Copilot ni réseau :
 - `mail/` (port 5993) : MCP et token, mails visibles dans l'API, HTML conservé, erreurs explicites, doublons.
 - `agent/` (ports 3994, 4994 et 5994) : politique d'autorisation, file d'attente, rejet d'un webhook sans secret, et la **chaîne complète** (webhook → orchestrateur → session ACP → appels MCP → `.eml` → annotation) avec un faux Copilot CLI (`agent/test/faux-copilot.js`).
 
+## Qui parle à qui
+
+```mermaid
+flowchart LR
+  subgraph NAV["Navigateur"]
+    UI["Interface RH"]
+    MUI["Client mail"]
+  end
+  VSC["VS Code<br/>Copilot Chat + agent RH"]
+  subgraph APP["app :3000"]
+    APPW["Interface + API /api"]
+    APPMCP["MCP /mcp<br/>appli-rh"]
+  end
+  subgraph MAIL["mail :5000"]
+    MAILW["Client web + API /api"]
+    MAILMCP["MCP /mcp<br/>messagerie"]
+  end
+  subgraph AG["agent :4000"]
+    ORCH["Orchestrateur<br/>/webhook"]
+    CLI["Copilot CLI<br/>(sous-processus)"]
+  end
+  LLM(("LLM distant"))
+
+  UI -- "1 HTTP + SSE" --> APPW
+  UI -. "iframe (onglet Messagerie)" .-> MAILW
+  MUI --> MAILW
+  VSC -- "2 MCP, token demo-rh-xxxx" --> APPMCP
+  VSC --- LLM
+  APPW -- "3 webhook note.creee<br/>X-Webhook-Secret" --> ORCH
+  ORCH -- "4 ACP sur stdin/stdout" --> CLI
+  CLI --- LLM
+  CLI -- "5 MCP, token demo-agent-yyyy" --> APPMCP
+  CLI -- "6 MCP, token demo-mail-wwww" --> MAILMCP
+  ORCH -- "7 POST /api/agent/statut et /activite" --> APPW
+  APPW -. "8 reset : DELETE /api/mails" .-> MAILW
+```
+
+| # | De → vers | Quoi | Se règle dans |
+|---|---|---|---|
+| 1 | Navigateur → app | Interface, API, rafraîchissement en direct (SSE) | URL `http://localhost:3000` |
+| 2 | VS Code → app | Outils MCP de l'application (lecture + écriture) | `vscode-demo/.vscode/mcp.json` (URL + token) |
+| 3 | app → orchestrateur | Webhook « note créée » | Interface : **Paramètres** (URL, secret) ; le secret doit égaler `WEBHOOK_SECRET` de `agent/.env` |
+| 4 | orchestrateur → Copilot CLI | Pilotage ACP, une session par note | `agent/.env` : `COPILOT_BIN`, `COPILOT_ARGS`, `WORKSPACE_DIR` |
+| 5 | Copilot CLI → app | Outils MCP de l'application (lecture + annotation) | `agent/.env` : `APP_MCP_URL`, `APP_MCP_TOKEN` |
+| 6 | Copilot CLI → mail | Outil `envoyer_mail` | `agent/.env` : `MAIL_MCP_URL`, `MESSAGERIE_TOKEN` (égal à celui de `mail/`) |
+| 7 | orchestrateur → app | Avancement de l'agent (badge, journal) | `agent/.env` : `APP_URL` |
+| 8 | app → mail | Vide la boîte à la réinitialisation | variable d'environnement `MAIL_URL` de l'app (défaut `http://localhost:5000`) |
+
+Les liens 5 et 6 ne sont pas ouverts par l'orchestrateur : il transmet ces URL et tokens à Copilot CLI à l'ouverture de chaque session ACP, et c'est Copilot CLI qui appelle les serveurs MCP.
+
+**Ports** : application 3000 · messagerie 5000 · orchestrateur 4000.
+
+**Les 3 tokens** : `demo-rh-xxxx` (VS Code → app, défini dans `app/config/tokens.json`) · `demo-agent-yyyy` (Copilot CLI → app, idem) · `demo-mail-wwww` (Copilot CLI → mail, variable `MESSAGERIE_TOKEN` côté `mail/` et côté `agent/`).
+
 ## Utiliser l'interface
 
 - **Tableau de bord** : prochaines arrivées, tâches à venir, dernières notes.
