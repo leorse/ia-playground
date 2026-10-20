@@ -1,0 +1,16 @@
+flowchart LR
+  subgraph AVANT["Avant l'arrivée"]
+    A1["Préparer le badge – J-3"]
+    A2["Préparer le poste – J-3"]
+    A3["Demandes d'accès – J-3"]
+  end
+  subgraph JOURJ["Jour J"]
+    B1["Accueil par le manager – 09:00"]
+    B2["Remise badge et poste – 09:30"]
+    B3["Présentation de l'équipe – 11:00"]
+  end
+  subgraph SEMAINE["Première semaine"]
+    C1["Vérifier les accès – J+4"]
+    C2["Point avec le manager – J+4"]
+  end
+  A1 --> A2 --> A3 --> B1 --> B2 --> B3 --> C1 --> C2

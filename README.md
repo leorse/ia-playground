@@ -10,7 +10,7 @@ La spécification complète est dans `spec-plateforme-demo-ia.md` (v0.2).
 |---|---|---|
 | Application RH + serveur MCP + webhook | `app/` | ✅ disponible |
 | Agent autonome (orchestrateur + Copilot CLI en ACP + messagerie) | `agent/` | ✅ disponible (testé avec un faux Copilot CLI, pas avec le vrai) |
-| Agent RH et skills pour VS Code | `vscode-demo/` | à venir |
+| Agent RH et skills pour VS Code | `vscode-demo/` | ✅ disponible (non testé dans VS Code) |
 
 ## Prérequis
 
@@ -122,6 +122,23 @@ curl -s http://localhost:3000/mcp -H "Content-Type: application/json" -H "Accept
 
 Sans en-tête `Authorization`, le serveur répond `401`.
 
+## Agent RH dans VS Code
+
+1. Démarrer l'application (`npm start`).
+2. Dans VS Code, **ouvrir le dossier `vscode-demo/`** (pas la racine du projet) : c'est lui qui contient `.vscode/mcp.json`, l'agent et les skills.
+3. Démarrer le serveur MCP `appli-rh` (palette de commandes : *MCP: List Servers* → `appli-rh` → *Start Server*). Le token de démo est pré-rempli. Le panneau « Sous le capot » de l'application montre la poignée de main et la liste des outils.
+4. Ouvrir Copilot Chat en **mode Agent**.
+
+**Sans persona ni skill** (premier temps de la démo) : avec le mode Agent par défaut, écrire « J'ai rendez-vous avec Paul mardi à 14h ». Une tâche est créée alors qu'on ne l'a pas demandé, grâce aux seules descriptions des outils.
+
+**Avec l'agent RH** : choisir **Agent RH** dans le sélecteur d'agents du chat, puis écrire :
+
+> Un nouvel arrivant, Jean Bonno, arrive en tant que développeur le 12 janvier en CDD pour 3 mois. Il lui faudra des accès.
+
+Fiche (fin calculée au 11/04/2027), tâche principale et sous-tâches, demandes d'accès et note d'annonce apparaissent en direct dans l'application. Suite possible : « Fais-moi le schéma de son parcours » (skill `schema-onboarding`).
+
+Les emplacements `.github/agents/*.agent.md` et `.github/skills/<nom>/SKILL.md` correspondent aux versions récentes de VS Code et de Copilot ; selon votre version, il peut être nécessaire d'activer les skills dans les paramètres (recherche « skills » ou « agent skills »). La note publiée par l'agent RH déclenche le webhook si celui-ci est actif : c'est la jonction avec l'agent autonome.
+
 ## Agent autonome
 
 L'agent autonome se compose de **l'orchestrateur** (`agent/`, Node.js) et de **Copilot CLI** qu'il pilote en ACP (`copilot --acp --stdio`). Copilot CLI est le cerveau (LLM, boucle d'outils, lecture de la persona et des skills dans `agent/workspace/`) ; l'orchestrateur reçoit le webhook, ouvre une session ACP par note, répond aux demandes d'autorisation et fournit l'outil d'envoi de mail.
@@ -210,5 +227,8 @@ agent/               Orchestrateur, client ACP, MCP messagerie
   workspace/         AGENTS.md (persona) et .github/skills/routage-notes/
   outbox/            mails simulés (.eml)
   test/              tests + faux Copilot CLI
-vscode-demo/         configuration MCP pour VS Code (.vscode/mcp.json) ; agent RH et skills à venir
+vscode-demo/         Espace de travail VS Code
+  .vscode/mcp.json   connexion au serveur MCP appli-rh
+  .github/agents/    agent-rh.agent.md (persona)
+  .github/skills/    nouvel-arrivant/ et schema-onboarding/
 ```
