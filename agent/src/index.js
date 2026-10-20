@@ -39,7 +39,14 @@ app.post('/webhook', express.json(), (req, res) => {
     return res.status(401).json({ error: 'secret invalide' });
   }
   const evenement = req.body;
-  if (evenement?.evenement !== 'note.creee' || !evenement.note?.id) return res.status(400).json({ error: 'événement non géré' });
+  if (evenement?.evenement === 'ping') {
+    trace.webhook('ping reçu : la liaison application → agent fonctionne');
+    return res.json({ pong: true });
+  }
+  if (evenement?.evenement !== 'note.creee' || !evenement.note?.id) {
+    trace.erreur(`Webhook ignoré : événement non géré (${JSON.stringify(evenement)?.slice(0, 120)})`);
+    return res.status(400).json({ error: 'événement non géré' });
+  }
   res.status(202).json({ accepte: true });
   trace.webhook(`${evenement.evenement} ${evenement.note.id} « ${evenement.note.extrait ?? ''} » (file : ${file.taille + 1})`);
   rapport.etat(evenement.note.id, 'en_attente', 'Webhook reçu');

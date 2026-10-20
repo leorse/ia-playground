@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { identifier } from './auth.js';
 import { creerServeurMcp } from './mcp.js';
-import { brancherWebhook } from './webhook.js';
+import { brancherWebhook, tester as testerWebhook } from './webhook.js';
 import * as store from './store.js';
 import * as journal from './journal.js';
 import * as agent from './agent.js';
@@ -61,6 +61,8 @@ app.post('/api/agent/activite', (req, res) => {
   agent.activite(req.body);
   res.json({ ok: true });
 });
+
+app.post('/api/webhook/test', async (_req, res) => res.json(await testerWebhook()));
 
 app.post('/api/reinitialiser', async (_req, res) => {
   store.reinitialiser();

@@ -279,10 +279,18 @@ Le support ACP de Copilot CLI est en préversion ; je n'ai pas pu le tester ici.
 2. Copilot CLI lit `AGENTS.md` et les skills de `.github/skills/` dans le dossier de travail. Sinon, injecter la persona et la procédure dans le prompt (fonction `promptNote` de `agent/src/acp.js`).
 3. Le format des demandes d'autorisation : la politique reconnaît un outil MCP à son nom ou titre (`appli-rh-…`, `messagerie/…`). Si un outil légitime est refusé, la console l'indique (`✘ REFUSÉ … ne provient ni de appli-rh ni de messagerie`) : adapter `agent/src/autorisations.js`.
 
-## Tester le webhook à la main
+## Vérifier que le webhook fonctionne
 
-1. Dans **Paramètres**, cocher « Webhook actif ».
-2. Publier une note depuis l'interface : le panneau « Sous le capot » affiche le POST émis (URL, payload, code de réponse). Sans agent à l'écoute sur le port 4000, la réponse indique une erreur de connexion, ce qui est normal.
+Dans **Paramètres** (les changements sont enregistrés automatiquement) :
+
+1. Cocher « Webhook actif ».
+2. Cliquer **« Tester la liaison avec l'agent »** : un ping est envoyé à l'orchestrateur, même si le webhook est désactivé. Le résultat s'affiche sous le bouton :
+   - **OK** : l'agent a répondu, la liaison fonctionne (la console de l'orchestrateur affiche `🔔 webhook ping reçu`) ;
+   - **échec … ECONNREFUSED** : l'orchestrateur n'est pas lancé, ou l'URL est mauvaise ;
+   - **401** : le secret ne correspond pas à `WEBHOOK_SECRET` dans `agent/.env`.
+3. Publier une note : le panneau « Sous le capot » (et la page **Notes**, qui rappelle si le webhook est actif) montre ce qui s'est passé :
+   - `🔔 webhook` avec l'URL, le contenu envoyé et le code de réponse (`202` = accepté par l'agent) ;
+   - ou `🔕 webhook non envoyé` avec la raison (« webhook désactivé ») : l'absence d'envoi n'est plus silencieuse.
 
 ## Brancher GitHub Copilot (VS Code) sur le serveur MCP
 

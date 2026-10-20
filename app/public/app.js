@@ -98,7 +98,8 @@ const vues = {
       return n ? blocNote(n, false) : '<p>Note introuvable.</p>';
     }
     return `<div class="carte"><h2>Nouvelle note</h2>
-      <p class="meta">Texte libre : l'agent autonome (si le webhook est activé) l'interprète.</p>
+      <p class="meta">Texte libre : l'agent autonome (si le webhook est activé) l'interprète.
+        Webhook : ${etat.parametres.webhook.actif ? `<span class="badge ok">actif</span> → ${esc(etat.parametres.webhook.url)}` : '<span class="badge ko">désactivé</span> (voir Paramètres)'}</p>
       <textarea id="contenu" placeholder="Ex. Sophie absente toute la semaine prochaine, Marc reprend ses dossiers…"></textarea>
       <p><button id="publier">Publier</button></p></div>
       ${etat.notes.slice().reverse().map((n) => blocNote(n)).join('') || '<span class="meta">Aucune note</span>'}`;
@@ -114,7 +115,8 @@ const vues = {
       <label><input type="checkbox" id="w-actif" style="width:auto" ${w.actif ? 'checked' : ''}> Webhook actif</label>
       <label>URL de l'agent</label><input id="w-url" value="${esc(w.url)}">
       <label>Secret partagé</label><input id="w-secret" value="${esc(w.secret)}">
-      <p><button id="enregistrer">Enregistrer</button></p></div>`;
+      <p class="meta" id="w-etat">Les modifications sont enregistrées automatiquement.</p>
+      <p><button id="tester">Tester la liaison avec l'agent</button></p></div>`;
   },
 };
 
@@ -123,7 +125,8 @@ function rendre() {
   document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('actif', a.getAttribute('href') === `#/${page}`));
   // ne pas écraser une saisie en cours dans le formulaire de note
   const saisie = $('#contenu')?.value;
-  if (page === 'messagerie' && $('#vue iframe.messagerie')) { rendreJournal(); return; } // l'iframe se met à jour seule
+  // l'iframe de messagerie et le formulaire des paramètres ne doivent pas être recréés à chaque événement
+  if ((page === 'messagerie' && $('#vue iframe.messagerie')) || (page === 'parametres' && $('#w-actif'))) { rendreJournal(); return; }
   $('#vue').innerHTML = (vues[page || 'dashboard'] || vues.dashboard)(id);
   if (saisie && $('#contenu')) $('#contenu').value = saisie;
   rendreJournal();
@@ -136,6 +139,9 @@ function rendreJournal() {
     const h = e.date.slice(11, 19);
     if (e.type === 'agent') {
       return `<div class="j"><span class="quoi">🤖 agent</span> <span class="meta">${h}${e.note_id ? ` · ${esc(e.note_id)}` : ''}</span> ${esc(e.texte || '')}</div>`;
+    }
+    if (e.type === 'webhook' && e.ignore) {
+      return `<div class="j"><span class="quoi">🔕 webhook non envoyé</span> <span class="meta">${h} · ${esc(e.note_id || '')}</span> <span class="badge warn">${esc(e.raison)}</span></div>`;
     }
     if (e.type === 'webhook') {
       return `<div class="j"><span class="quoi">🔔 webhook</span> <span class="meta">${h}</span> → ${esc(e.url)} <span class="badge ${e.statut === 202 || e.statut === 200 ? 'ok' : 'ko'}">${esc(e.statut ?? e.erreur)}</span><pre>${esc(JSON.stringify(e.payload))}</pre></div>`;
@@ -153,13 +159,23 @@ document.addEventListener('click', async (ev) => {
     if (!contenu) return;
     await fetch('/api/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contenu }) });
     $('#contenu').value = '';
-  } else if (ev.target.id === 'enregistrer') {
-    await fetch('/api/parametres', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ webhook: { actif: $('#w-actif').checked, url: $('#w-url').value, secret: $('#w-secret').value } }) });
-    ev.target.textContent = 'Enregistré ✓';
+  } else if (ev.target.id === 'tester') {
+    $('#w-etat').textContent = 'Test en cours…';
+    const r = await (await fetch('/api/webhook/test', { method: 'POST' })).json();
+    $('#w-etat').innerHTML = r.erreur ? `<span class="badge ko">échec</span> ${esc(r.erreur)} — l'agent est-il lancé ?`
+      : r.statut === 200 ? '<span class="badge ok">OK</span> l’agent a répondu : liaison fonctionnelle.'
+      : r.statut === 401 ? '<span class="badge ko">401</span> secret refusé : il doit être identique à WEBHOOK_SECRET dans agent/.env.'
+      : `<span class="badge warn">${r.statut}</span> réponse inattendue de l’agent.`;
   } else if (ev.target.id === 'reset') {
     if (confirm('Remettre les données de départ ?')) await fetch('/api/reinitialiser', { method: 'POST' });
   }
+});
+
+document.addEventListener('change', async (ev) => {
+  if (!['w-actif', 'w-url', 'w-secret'].includes(ev.target.id)) return;
+  await fetch('/api/parametres', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ webhook: { actif: $('#w-actif').checked, url: $('#w-url').value.trim(), secret: $('#w-secret').value.trim() } }) });
+  $('#w-etat').innerHTML = `<span class="badge ${$('#w-actif').checked ? 'ok' : 'warn'}">${$('#w-actif').checked ? 'webhook actif' : 'webhook désactivé'}</span> enregistré.`;
 });
 
 let attente;

@@ -79,6 +79,9 @@ test('webhook : émis seulement si actif, avec le secret', async () => {
   await post('/api/notes', { contenu: 'désactivé' });
   await new Promise((r) => setTimeout(r, 300));
   assert.equal(recus.length, 0);
+  // même désactivé, l'absence d'envoi est expliquée dans le journal
+  const avant = await (await fetch(`${URL_APP}/api/state`)).json();
+  assert.ok(avant.journal.some((j) => j.type === 'webhook' && j.ignore && /désactivé/.test(j.raison)));
   await post('/api/parametres', { webhook: { actif: true, url: 'http://localhost:4999/webhook' } });
   await post('/api/notes', { contenu: 'Jean Bonno rejoindra l’équipe' });
   await new Promise((r) => setTimeout(r, 500));
@@ -88,6 +91,18 @@ test('webhook : émis seulement si actif, avec le secret', async () => {
   assert.equal(recus[0].body.evenement, 'note.creee');
   const etat = await (await fetch(`${URL_APP}/api/state`)).json();
   assert.ok(etat.journal.some((j) => j.type === 'webhook' && j.statut === 202));
+});
+
+test('webhook : le test de liaison joint l’agent, ou explique l’échec', async () => {
+  const post = (path, body) => fetch(`${URL_APP}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  await post('/api/parametres', { webhook: { actif: false, url: 'http://localhost:4998/webhook' } });
+  const echec = await (await post('/api/webhook/test', {})).json();
+  assert.match(echec.erreur, /ECONNREFUSED/);
+  const { createServer } = await import('node:http');
+  const cible = createServer((req, res) => { res.writeHead(200).end('{}'); }).listen(4998);
+  const ok = await (await post('/api/webhook/test', {})).json();
+  cible.close();
+  assert.equal(ok.statut, 200);
 });
 
 test('réinitialisation', async () => {
