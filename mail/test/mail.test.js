@@ -81,6 +81,13 @@ test('chaque appel MCP est signalé à l’application (schéma des flux)', asyn
   } finally { mail2.kill(); faux.close(); }
 });
 
+test('onglet MCP : échanges bruts du serveur de messagerie', async () => {
+  const d = await (await fetch(`${URL_MAIL}/api/mcp`)).json();
+  assert.equal(d.initialize.reponse.result.serverInfo.name, 'messagerie');
+  assert.deepEqual(d.outils.reponse.result.tools.map((t) => t.name).sort(), ['envoyer_mail', 'lister_mails_envoyes']);
+  assert.equal(d.droits, undefined);
+});
+
 test('vider la boîte', async () => {
   await fetch(`${URL_MAIL}/api/mails`, { method: 'DELETE' });
   assert.deepEqual(await (await fetch(`${URL_MAIL}/api/mails`)).json(), []);

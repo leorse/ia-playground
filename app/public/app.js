@@ -105,11 +105,7 @@ const vues = {
       ${etat.notes.slice().reverse().map((n) => blocNote(n)).join('') || '<span class="meta">Aucune note</span>'}`;
   },
   flux() { return Flux.html(); },
-  messagerie() {
-    const url = `${location.protocol}//${location.hostname}:5000`;
-    return `<p class="meta">Client mail de démonstration (<a href="${url}" target="_blank" rel="noopener">ouvrir dans un onglet</a>). Les mails envoyés par l’agent autonome y apparaissent en direct.</p>
-      <iframe class="messagerie" src="${url}" title="Messagerie"></iframe>`;
-  },
+  mcp() { return '<div id="mcp-vue"></div>'; },
   parametres() {
     const w = etat.parametres.webhook;
     return `<div class="carte"><h2>Notifier l'agent autonome (webhook)</h2>
@@ -126,12 +122,13 @@ function rendre() {
   document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('actif', a.getAttribute('href') === `#/${page}`));
   // ne pas écraser une saisie en cours dans le formulaire de note
   const saisie = $('#contenu')?.value;
-  // l'iframe de messagerie et le formulaire des paramètres ne doivent pas être recréés à chaque événement
-  if ((page === 'messagerie' && $('#vue iframe.messagerie')) || (page === 'parametres' && $('#w-actif')) || (page === 'flux' && $('#flux-svg'))) { rendreJournal(); Flux.majEtatAgent(etat.agent); return; }
+  // le formulaire des paramètres, le schéma des flux et l'onglet MCP ne doivent pas être recréés à chaque événement
+  if ((page === 'mcp' && $('#mcp-vue')) || (page === 'parametres' && $('#w-actif')) || (page === 'flux' && $('#flux-svg'))) { rendreJournal(); Flux.majEtatAgent(etat.agent); return; }
   $('#vue').innerHTML = (vues[page || 'dashboard'] || vues.dashboard)(id);
   if (saisie && $('#contenu')) $('#contenu').value = saisie;
   rendreJournal();
-  if (page === 'flux') Flux.init(etat.journal);
+  if (page === 'flux') { Flux.init(etat.journal); $('#lien-mail').href = `${location.protocol}//${location.hostname}:5000`; }
+  if (page === 'mcp') McpVue.monter($('#mcp-vue'), '/api/mcp');
   Flux.majEtatAgent(etat.agent);
   if (window.mermaid) mermaid.run({ querySelector: '.mermaid' }).catch(() => {});
 }

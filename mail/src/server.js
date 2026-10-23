@@ -2,6 +2,7 @@ import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { creerServeurMcp } from './mcp.js';
+import { vueMcp } from './mcp-vue.js';
 import * as store from './store.js';
 
 const PORT = process.env.PORT || 5000;
@@ -40,6 +41,14 @@ app.get('/api/mails', (_req, res) => res.json(store.lister()));
 app.get('/api/mails/:id', (req, res) => {
   const m = store.lire(req.params.id);
   return m ? res.json(m) : res.status(404).json({ error: 'mail introuvable' });
+});
+app.get('/api/mcp', async (_req, res) => {
+  const url = `http://localhost:${PORT}/mcp`;
+  try {
+    res.json({ url, ...(await vueMcp(url, TOKEN)) });
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
 });
 app.delete('/api/mails', (_req, res) => { store.vider(); res.json({ ok: true }); });
 

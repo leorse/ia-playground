@@ -31,7 +31,6 @@ label { display:block; margin:8px 0 2px; }
 
 .badge.pulse { animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .45; } }
-iframe.messagerie { width:100%; height:calc(100vh - 150px); min-height:420px; border:1px solid var(--bord); border-radius:8px; background:var(--carte); }
 
 /* --- schéma des flux --- */
 .carte.flux { padding:8px; } #flux-svg { width:100%; max-width:900px; display:block; margin:auto; }
@@ -61,3 +60,11 @@ iframe.messagerie { width:100%; height:calc(100vh - 150px); min-height:420px; bo
 @keyframes defile { to { stroke-dashoffset: -21; } }
 @media (prefers-reduced-motion: reduce) { #flux-svg .lien.on path, #flux-svg .noeud.occupe .icone { animation: none; } }
 #flux-svg .lien.on .etiq { transition-duration:.15s; }
+
+/* onglet MCP */
+.mcp-barre { display:flex; align-items:center; gap:14px; margin-bottom:10px; } .mcp-barre label { margin:0; } .mcp-barre .secondaire { margin-left:auto; background:transparent; color:var(--accent); }
+.carte-mcp { margin-bottom:10px; } .carte-mcp h2 { margin:0 0 6px; }
+.mcp-table td, .mcp-table th { vertical-align:top; } .mcp-table td:first-child { white-space:nowrap; } .mcp-table td:last-child { min-width:220px; }
+.mcp-table code, #vue h3 code { font:12.5px ui-monospace,Consolas,monospace; } .mcp-table b { color:var(--ko); }
+#vue pre { background:var(--carte); border:1px solid var(--bord); border-radius:6px; padding:10px; font:12px/1.45 ui-monospace,Consolas,monospace; max-height:420px; }
+#vue pre { white-space:pre-wrap; word-break:break-word; }

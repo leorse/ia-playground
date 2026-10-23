@@ -131,3 +131,17 @@ test('flux : un service externe signale un échange, visible dans le journal', a
   const etat = await (await fetch(`${URL_APP}/api/state`)).json();
   assert.ok(etat.journal.some((j) => j.type === 'flux' && j.lien === 'agent-mail' && /envoyer_mail/.test(j.texte)));
 });
+
+test('onglet MCP : échanges bruts, outils et droits requis', async () => {
+  const d = await (await fetch(`${URL_APP}/api/mcp`)).json();
+  assert.equal(d.initialize.requete.method, 'initialize');
+  assert.equal(d.initialize.reponse.result.serverInfo.name, 'appli-rh');
+  assert.match(d.initialize.reponse.result.instructions, /Application RH/);
+  const noms = d.outils.reponse.result.tools.map((t) => t.name);
+  assert.equal(noms.length, 14);
+  assert.ok(!noms.includes('envoyer_mail')); // les outils de la messagerie restent dans l'appli mail
+  assert.equal(d.droits.creer_tache, 'ecriture');
+  assert.equal(d.droits.annoter_note, 'annotation');
+  assert.equal(d.droits.lire_note, 'lecture');
+  assert.ok(Object.keys(d.droits).every((n) => noms.includes(n)));
+});

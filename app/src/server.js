@@ -1,8 +1,9 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { identifier } from './auth.js';
-import { creerServeurMcp } from './mcp.js';
+import { identifier, tokenDeLecture } from './auth.js';
+import { creerServeurMcp, droitsOutils } from './mcp.js';
+import { vueMcp } from './mcp-vue.js';
 import { brancherWebhook, tester as testerWebhook } from './webhook.js';
 import * as store from './store.js';
 import * as journal from './journal.js';
@@ -47,6 +48,17 @@ app.post('/api/notes', (req, res) => {
 app.post('/api/parametres', (req, res) => {
   store.majParametres(req.body || {});
   res.json(store.parametres());
+});
+
+/* Onglet « MCP » : interroge notre propre serveur comme un client */
+app.get('/api/mcp', async (_req, res) => {
+  const url = `http://localhost:${PORT}/mcp`;
+  const [token, client] = tokenDeLecture();
+  try {
+    res.json({ url, token: client.nom, droits: droitsOutils(), ...(await vueMcp(url, token)) });
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
 });
 
 /* L'orchestrateur de l'agent autonome signale où il en est */

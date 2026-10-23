@@ -9,13 +9,16 @@
 <body>
 <header>
   <strong>✉️ Messagerie</strong>
+  <nav><a href="#/" id="nav-mails">Mails</a><a href="#/mcp" id="nav-mcp">MCP</a></nav>
   <span id="compteur" class="meta"></span>
   <button id="vider" title="Supprimer tous les mails">Vider la boîte</button>
 </header>
-<div class="client">
+<div class="client" id="vue-mails">
   <section id="liste" aria-label="Mails"></section>
   <section id="lecture" aria-label="Lecture"><p class="vide">Sélectionnez un mail.</p></section>
 </div>
+<main id="vue-mcp" hidden><div id="mcp-vue"></div></main>
+<script src="mcp-vue.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

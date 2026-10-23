@@ -8,4 +8,7 @@ export function identifier(req) {
   return m ? tokens[m[1]] || null : null;
 }
 
+/** Un token de lecture, pour que l'onglet MCP interroge le serveur comme un client. */
+export const tokenDeLecture = () => Object.entries(tokens).find(([, c]) => c.droits.includes('lecture'));
+
 export const aLeDroit = (client, droit) => client.droits.includes(droit);

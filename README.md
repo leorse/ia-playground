@@ -96,7 +96,7 @@ flowchart LR
   LLM(("LLM distant"))
 
   UI -- "1 HTTP + SSE" --> APPW
-  UI -. "iframe (onglet Messagerie)" .-> MAILW
+  UI -. "onglet séparé" .-> MAILW
   MUI --> MAILW
   VSC -- "2 MCP, token demo-rh-xxxx" --> APPMCP
   VSC --- LLM
@@ -133,7 +133,8 @@ Les liens 5 et 6 ne sont pas ouverts par l'orchestrateur : il transmet ces URL e
 - **Notes** : zone de saisie libre. Les annotations de l'agent autonome s'affichent sous chaque note.
 - **Paramètres** : interrupteur du webhook (désactivé par défaut), URL de l'agent (`http://localhost:4000/webhook`), secret partagé.
 - **Flux** : le schéma en direct (VS Code, MCP RH / Appli RH, Agent, MCP Mail / Serveur Mail). Chaque échange **allume la liaison concernée** (vert = appel MCP, orange = webhook, rouge = échec ou refus) avec le nom de l'outil appelé, la laisse allumée 4 secondes, puis l'estompe. Les boîtes concernées s'illuminent aussi, et l'Agent pulse tant qu'une note est en cours de traitement. Dessous, le « Déroulé » liste les derniers échanges. Les icônes sont dans `app/public/icons/` (clipboard, VS Code, robot, mail) : pour en changer, remplacer le fichier SVG correspondant (sur fond sombre, prévoir des traits clairs). Les appels de la messagerie sont signalés à l'application par le service `mail/` (variable `APP_URL` de `mail/`, sans effet si l'application est arrêtée).
-- **Messagerie** : le client mail de démonstration (voir ci-dessous) intégré dans l'interface.
+- **MCP** : ce que l'application expose en MCP, sous forme de tableau (fonction, droit requis, description, paramètres). La case **Vue JSON** affiche à la place les échanges bruts tels qu'un client MCP les voit (`initialize` puis `tools/list`, requête et réponse). Les outils de la messagerie n'y figurent pas : ils sont dans l'onglet MCP de l'appli mail.
+- La boîte mail n'est **pas** dans cette interface : elle vit uniquement sur `http://localhost:5000` (un lien « Ouvrir la boîte mail ↗ » est sur l'onglet Flux).
 - **Panneau « Sous le capot »** (à droite) : appels MCP reçus, refus de droits, webhooks émis et **étapes de l'agent autonome** (🤖), en direct.
 - Sur chaque note, un **badge** suit l'agent : « en attente », « traite cette note… » (clignotant), « traitée par l'agent », ou « échec » / « délai dépassé ».
 
@@ -194,7 +195,7 @@ Sans en-tête `Authorization`, le serveur répond `401`.
 Un petit service indépendant (`mail/`, port 5000) joue le rôle de serveur de mail. Il expose **deux choses** :
 
 - un **serveur MCP** `messagerie` (`http://localhost:5000/mcp`, token `demo-mail-wwww`) avec les outils `envoyer_mail` et `lister_mails_envoyes` : c'est ce que l'agent autonome appelle pour prévenir les gens ;
-- un **client mail web** (`http://localhost:5000`, aussi intégré dans l'onglet **Messagerie** de l'application) : la liste des mails à gauche, le contenu HTML du mail sélectionné à droite. Un nouveau mail apparaît en direct, en surbrillance, sans recharger la page. Le contenu est affiché dans un cadre isolé (sans scripts).
+- un **client mail web** (`http://localhost:5000`, onglet **Mails**) : la liste des mails à gauche, le contenu HTML du mail sélectionné à droite. Un nouveau mail apparaît en direct, en surbrillance, sans recharger la page. Le contenu est affiché dans un cadre isolé (sans scripts). L'onglet **MCP** de cette interface liste les deux outils de la messagerie (tableau, ou **Vue JSON** pour les échanges bruts), comme celui de l'appli RH pour ses 14 outils.
 
 Le corps d'un mail est du HTML simple (`<p>`, `<ul>`, `<table>`…) ; du texte brut est converti automatiquement. Chaque mail est aussi écrit en `.eml` dans `mail/outbox/`. Le bouton « Vider la boîte » (ou « Réinitialiser la démo » de l'application) supprime les mails.
 
@@ -237,7 +238,7 @@ Puis dans l'interface (<http://localhost:3000>), **Paramètres → cocher « Web
 
 - **sur la note** : le badge « 🤖 l'agent traite cette note… » puis « ✓ traitée par l'agent », et l'annotation qui apparaît dessous ;
 - **dans « Sous le capot »** : chaque étape de l'agent (🤖) et chaque appel MCP ;
-- **dans l'onglet Messagerie** : les mails qui arrivent en direct ;
+- **dans l'appli mail** (`http://localhost:5000`) : les mails qui arrivent en direct ;
 - **dans la console de l'orchestrateur** : le flux détaillé (messages, outils, autorisations).
 
 ### Configuration (`agent/.env`)

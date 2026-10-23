@@ -22,3 +22,14 @@ header button { margin-left:auto; font:inherit; padding:4px 10px; border-radius:
 .entete h2 { margin:0 0 6px; font-size:18px; } .entete div { font-size:13px; } .entete .k { opacity:.6; display:inline-block; width:50px; }
 iframe { flex:1; min-height:240px; width:100%; border:0; background:#fff; border-radius:6px; }
 @media (max-width: 700px) { .client { grid-template-columns: 1fr; grid-template-rows: 40% 60%; } #liste { border-right:0; border-bottom:1px solid var(--bord); } }
+
+header nav a { margin-right:12px; text-decoration:none; color:var(--fg); padding:4px 0; } header nav a.actif { color:var(--accent); border-bottom:2px solid var(--accent); }
+.client[hidden], #vue-mcp[hidden] { display:none; }
+#vue-mcp { flex:1; min-height:0; overflow:auto; padding:16px 20px; }
+a { color:var(--accent); } table { border-collapse:collapse; width:100%; } th, td { text-align:left; padding:5px 8px; border-bottom:1px solid var(--bord); vertical-align:top; }
+.mcp-barre { display:flex; align-items:center; gap:14px; margin-bottom:10px; } .mcp-barre label { margin:0; } .mcp-barre .secondaire { margin-left:auto; font:inherit; padding:4px 10px; border-radius:6px; border:1px solid var(--bord); background:transparent; color:var(--accent); cursor:pointer; }
+.carte-mcp { margin-bottom:10px; } h2 { font-size:16px; margin:0 0 6px; } h3 { font-size:14px; margin:14px 0 4px; }
+.mcp-table td:first-child { white-space:nowrap; } .mcp-table td:last-child { min-width:220px; } .mcp-table b { color:#c0392b; }
+code { font:12.5px ui-monospace,Consolas,monospace; }
+#vue-mcp pre { background:var(--carte); border:1px solid var(--bord); border-radius:6px; padding:10px; font:12px/1.45 ui-monospace,Consolas,monospace; max-height:420px; overflow:auto; }
+#vue-mcp pre { white-space:pre-wrap; word-break:break-word; }

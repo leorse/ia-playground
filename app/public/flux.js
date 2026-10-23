@@ -103,6 +103,7 @@ const Flux = (() => {
 
   function html() {
     return `<p class="meta">Chaque échange allume la liaison concernée quelques secondes, puis elle s’estompe.
+        <a class="legende" href="#" id="lien-mail" target="_blank" rel="noopener">Ouvrir la boîte mail ↗</a>
         <span class="legende"><i class="pastille repos"></i>au repos <i class="pastille mcp"></i>appel MCP <i class="pastille hook"></i>webhook <i class="pastille ko"></i>échec ou refus</span></p>
       <div class="carte flux">
       <svg id="flux-svg" viewBox="0 0 760 520" role="img" aria-label="Schéma des flux entre VS Code, l'application RH, l'agent et le serveur mail">

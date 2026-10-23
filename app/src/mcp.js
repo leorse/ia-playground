@@ -10,11 +10,20 @@ const dateJour = z.string().describe('Format AAAA-MM-JJ');
 const dateHeure = z.string().describe('Format AAAA-MM-JJ ou AAAA-MM-JJTHH:MM (heure locale)');
 const TYPES_CONTRAT = ['CDI', 'CDD', 'stage', 'alternance', 'interim'];
 
+const droitsParOutil = new Map();
+
+/** Droit requis par outil (information interne : n'apparaît pas dans ce que voit un client MCP). */
+export function droitsOutils() {
+  creerServeurMcp({ nom: 'inspection', droits: [] });
+  return Object.fromEntries(droitsParOutil);
+}
+
 /** Crée un serveur MCP dont les outils appliquent les droits du client authentifié. */
 export function creerServeurMcp(client) {
   const serveur = new McpServer({ name: 'appli-rh', version: '0.1.0' }, { instructions: INSTRUCTIONS });
 
   const outil = (nom, droit, description, schema, fn) => {
+    droitsParOutil.set(nom, droit);
     serveur.registerTool(nom, { description, inputSchema: schema }, async (params) => {
       const entree = { client: client.nom, outil: nom, parametres: params };
       if (!aLeDroit(client, droit)) {

@@ -57,3 +57,17 @@ const sse = new EventSource('/api/events');
 sse.addEventListener('mail', (e) => { nouveaux.add(JSON.parse(e.data).id); });
 sse.addEventListener('change', charger);
 charger();
+
+/* onglets Mails / MCP */
+function afficherOnglet() {
+  const mcp = location.hash === '#/mcp';
+  $('#vue-mails').hidden = mcp;
+  $('#vue-mcp').hidden = !mcp;
+  $('#vider').hidden = mcp;
+  $('#compteur').hidden = mcp;
+  $('#nav-mails').classList.toggle('actif', !mcp);
+  $('#nav-mcp').classList.toggle('actif', mcp);
+  if (mcp) McpVue.monter($('#mcp-vue'), '/api/mcp');
+}
+addEventListener('hashchange', afficherOnglet);
+afficherOnglet();
