@@ -95,6 +95,7 @@ const Flux = (() => {
 
   const noeud = (id, x, y, w, h, fill, stroke, contenu) =>
     `<g class="noeud" data-noeud="${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="14" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/>${contenu}</g>`;
+  const icone = (nom, x, y, t) => `<image class="icone" href="icons/${nom}.svg" x="${x}" y="${y}" width="${t}" height="${t}"/>`;
   const lien = (id, type, chemin, xs, ys, xd, yd, nom) =>
     `<g class="lien ${type}" data-lien="${id}"><path d="${chemin}" fill="none"/>
       <text class="etiq" x="${xs}" y="${ys}" text-anchor="middle">${nom}</text>
@@ -113,11 +114,11 @@ const Flux = (() => {
         ${lien('agent-rh', 'mcp', 'M132 280 V215 H351 V150', 240, 205, 240, 232, 'MCP')}
         ${lien('app-agent', 'hook', 'M510 185 V340 H245', 378, 330, 378, 358, 'Webhook')}
         ${lien('agent-mail', 'mcp', 'M132 400 V435 H412', 270, 425, 270, 452, 'MCP')}
-        ${noeud('appli', 370, 30, 275, 155, '#2a1f1c', '#f2a516', '<text x="530" y="112" text-anchor="middle" class="t-grand">Appli RH</text>')}
-        ${noeud('mail', 480, 365, 255, 130, '#0c3b2b', '#2e9e6b', '<text x="625" y="436" text-anchor="middle" class="t-grand">Serveur Mail</text>')}
-        ${noeud('vscode', 10, 55, 170, 110, '#18253f', '#2bb5a0', '<text x="95" y="102" text-anchor="middle" class="t-grand gras">VS Code</text><text x="95" y="128" text-anchor="middle" class="t-petit">GitHub Copilot</text>')}
+        ${noeud('appli', 370, 30, 275, 155, '#2a1f1c', '#f2a516', `${icone('clipboard', 494, 44, 56)}<text x="522" y="146" text-anchor="middle" class="t-grand">Appli RH</text>`)}
+        ${noeud('mail', 480, 365, 255, 130, '#0c3b2b', '#2e9e6b', `${icone('mail', 592, 374, 52)}<text x="618" y="462" text-anchor="middle" class="t-grand">Serveur Mail</text>`)}
+        ${noeud('vscode', 10, 55, 170, 110, '#18253f', '#2bb5a0', `${icone('vscode_logo', 73, 63, 44)}<text x="95" y="132" text-anchor="middle" class="t-grand gras">VS Code</text><text x="95" y="151" text-anchor="middle" class="t-petit">GitHub Copilot</text>`)}
         ${noeud('mcprh', 305, 70, 92, 80, '#17304f', '#2f83c4', '<text x="351" y="105" text-anchor="middle" class="t-grand">MCP</text><text x="351" y="132" text-anchor="middle" class="t-grand">RH</text>')}
-        ${noeud('agent', 20, 280, 225, 120, '#14243d', '#2f83c4', '<text x="132" y="333" text-anchor="middle" class="t-grand">Agent</text><text x="132" y="360" text-anchor="middle" class="t-petit">orchestrateur + Copilot CLI</text>')}
+        ${noeud('agent', 20, 280, 225, 120, '#14243d', '#2f83c4', `${icone('robot', 106, 286, 52)}<text x="132" y="361" text-anchor="middle" class="t-grand">Agent</text><text x="132" y="384" text-anchor="middle" class="t-petit">orchestrateur + Copilot CLI</text>`)}
         ${noeud('mcpmail', 412, 395, 90, 80, '#17304f', '#2f83c4', '<text x="457" y="430" text-anchor="middle" class="t-grand">MCP</text><text x="457" y="457" text-anchor="middle" class="t-grand">Mail</text>')}
       </svg></div>
       <h3>Déroulé</h3><ol id="flux-log"></ol>`;
