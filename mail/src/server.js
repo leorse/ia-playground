@@ -6,6 +6,13 @@ import * as store from './store.js';
 
 const PORT = process.env.PORT || 5000;
 const TOKEN = process.env.MESSAGERIE_TOKEN || 'demo-mail-wwww';
+const APP_URL = process.env.APP_URL || 'http://localhost:3000';
+
+/** Signale à l'application RH qu'un outil de la messagerie vient d'être appelé (pour le schéma des flux). Sans effet si elle est arrêtée. */
+const signalerALAppli = (e) => fetch(`${APP_URL}/api/flux`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ lien: 'agent-mail', libelle: e.outil, detail: e.detail }), signal: AbortSignal.timeout(2000),
+}).catch(() => {});
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -14,7 +21,10 @@ app.use(express.static(fileURLToPath(new URL('../public', import.meta.url))));
 /* ---------- MCP (sans état) ---------- */
 app.post('/mcp', async (req, res) => {
   if (req.get('authorization') !== `Bearer ${TOKEN}`) return res.status(401).json({ error: 'Token absent ou inconnu' });
-  const serveur = creerServeurMcp((e) => console.log(`✉️  ${e.mail.id} → ${e.mail.a.join(', ')} : ${e.mail.objet}`));
+  const serveur = creerServeurMcp((e) => {
+    console.log(`✉️  ${e.outil} ${e.detail ?? ''}`);
+    signalerALAppli(e);
+  });
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
   res.on('close', () => { transport.close(); serveur.close(); });
   await serveur.connect(transport);

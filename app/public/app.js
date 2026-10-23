@@ -104,6 +104,7 @@ const vues = {
       <p><button id="publier">Publier</button></p></div>
       ${etat.notes.slice().reverse().map((n) => blocNote(n)).join('') || '<span class="meta">Aucune note</span>'}`;
   },
+  flux() { return Flux.html(); },
   messagerie() {
     const url = `${location.protocol}//${location.hostname}:5000`;
     return `<p class="meta">Client mail de démonstration (<a href="${url}" target="_blank" rel="noopener">ouvrir dans un onglet</a>). Les mails envoyés par l’agent autonome y apparaissent en direct.</p>
@@ -126,10 +127,12 @@ function rendre() {
   // ne pas écraser une saisie en cours dans le formulaire de note
   const saisie = $('#contenu')?.value;
   // l'iframe de messagerie et le formulaire des paramètres ne doivent pas être recréés à chaque événement
-  if ((page === 'messagerie' && $('#vue iframe.messagerie')) || (page === 'parametres' && $('#w-actif'))) { rendreJournal(); return; }
+  if ((page === 'messagerie' && $('#vue iframe.messagerie')) || (page === 'parametres' && $('#w-actif')) || (page === 'flux' && $('#flux-svg'))) { rendreJournal(); Flux.majEtatAgent(etat.agent); return; }
   $('#vue').innerHTML = (vues[page || 'dashboard'] || vues.dashboard)(id);
   if (saisie && $('#contenu')) $('#contenu').value = saisie;
   rendreJournal();
+  if (page === 'flux') Flux.init(etat.journal);
+  Flux.majEtatAgent(etat.agent);
   if (window.mermaid) mermaid.run({ querySelector: '.mermaid' }).catch(() => {});
 }
 
@@ -139,6 +142,9 @@ function rendreJournal() {
     const h = e.date.slice(11, 19);
     if (e.type === 'agent') {
       return `<div class="j"><span class="quoi">🤖 agent</span> <span class="meta">${h}${e.note_id ? ` · ${esc(e.note_id)}` : ''}</span> ${esc(e.texte || '')}</div>`;
+    }
+    if (e.type === 'flux') {
+      return `<div class="j"><span class="quoi">✉️ messagerie</span> <span class="meta">${h}</span> ${esc(e.texte || '')}</div>`;
     }
     if (e.type === 'webhook' && e.ignore) {
       return `<div class="j"><span class="quoi">🔕 webhook non envoyé</span> <span class="meta">${h} · ${esc(e.note_id || '')}</span> <span class="badge warn">${esc(e.raison)}</span></div>`;
@@ -182,6 +188,6 @@ let attente;
 const rafraichir = () => { clearTimeout(attente); attente = setTimeout(charger, 150); };
 const sse = new EventSource('/api/events');
 sse.addEventListener('data', rafraichir);
-sse.addEventListener('journal', rafraichir);
+sse.addEventListener('journal', (ev) => { Flux.traiter(JSON.parse(ev.data)); rafraichir(); });
 addEventListener('hashchange', rendre);
 charger();

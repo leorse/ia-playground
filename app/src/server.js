@@ -62,6 +62,14 @@ app.post('/api/agent/activite', (req, res) => {
   res.json({ ok: true });
 });
 
+/* Un autre service (la messagerie) signale un échange pour le schéma des flux et le journal */
+app.post('/api/flux', (req, res) => {
+  const { lien, libelle, detail } = req.body || {};
+  if (!lien) return res.status(400).json({ error: 'lien requis' });
+  journal.log('flux', { lien, libelle, texte: [libelle, detail].filter(Boolean).join(' ') });
+  res.json({ ok: true });
+});
+
 app.post('/api/webhook/test', async (_req, res) => res.json(await testerWebhook()));
 
 app.post('/api/reinitialiser', async (_req, res) => {

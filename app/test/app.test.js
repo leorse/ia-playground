@@ -123,3 +123,11 @@ test('suivi de l’agent : statut et activité visibles dans l’état et le jou
   await fetch(`${URL_APP}/api/reinitialiser`, { method: 'POST' });
   assert.deepEqual((await (await fetch(`${URL_APP}/api/state`)).json()).agent, {});
 });
+
+test('flux : un service externe signale un échange, visible dans le journal', async () => {
+  const post = (body) => fetch(`${URL_APP}/api/flux`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  assert.equal((await post({})).status, 400);
+  await post({ lien: 'agent-mail', libelle: 'envoyer_mail', detail: '→ it@exemple.local' });
+  const etat = await (await fetch(`${URL_APP}/api/state`)).json();
+  assert.ok(etat.journal.some((j) => j.type === 'flux' && j.lien === 'agent-mail' && /envoyer_mail/.test(j.texte)));
+});

@@ -60,6 +60,27 @@ test('texte brut converti en HTML ; erreurs explicites ; doublons repérables', 
   assert.equal(deja.length, 1);
 });
 
+test('chaque appel MCP est signalé à l’application (schéma des flux)', async () => {
+  const { createServer } = await import('node:http');
+  const recus = [];
+  const faux = createServer((req, res) => {
+    let b = ''; req.on('data', (d) => (b += d));
+    req.on('end', () => { recus.push({ url: req.url, corps: JSON.parse(b) }); res.writeHead(200).end('{}'); });
+  }).listen(3992);
+  const mail2 = spawn('node', ['src/server.js'], { env: { ...process.env, PORT: 5992, APP_URL: 'http://localhost:3992', MAIL_DATA_FILE: join(tmp, 'm2.json'), MAIL_OUTBOX_DIR: join(tmp, 'o2') }, stdio: 'ignore' });
+  try {
+    for (let i = 0; i < 50; i++) { try { await fetch('http://localhost:5992/api/mails'); break; } catch { await new Promise((r) => setTimeout(r, 100)); } }
+    const c = new Client({ name: 'test', version: '1' });
+    await c.connect(new StreamableHTTPClientTransport(new URL('http://localhost:5992/mcp'), { requestInit: { headers: { Authorization: 'Bearer demo-mail-wwww' } } }));
+    await appeler(c, 'lister_mails_envoyes', { note_id: 'N-0007' });
+    await appeler(c, 'envoyer_mail', { a: ['it@exemple.local'], objet: 'Test', corps: 'x', note_id: 'N-0007' });
+    await new Promise((r) => setTimeout(r, 400));
+    assert.deepEqual(recus.map((r) => r.url), ['/api/flux', '/api/flux']);
+    assert.deepEqual(recus.map((r) => r.corps.libelle), ['lister_mails_envoyes', 'envoyer_mail']);
+    assert.ok(recus.every((r) => r.corps.lien === 'agent-mail'));
+  } finally { mail2.kill(); faux.close(); }
+});
+
 test('vider la boîte', async () => {
   await fetch(`${URL_MAIL}/api/mails`, { method: 'DELETE' });
   assert.deepEqual(await (await fetch(`${URL_MAIL}/api/mails`)).json(), []);

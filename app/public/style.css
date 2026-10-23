@@ -32,3 +32,22 @@ label { display:block; margin:8px 0 2px; }
 .badge.pulse { animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .45; } }
 iframe.messagerie { width:100%; height:calc(100vh - 150px); min-height:420px; border:1px solid var(--bord); border-radius:8px; background:var(--carte); }
+
+/* --- schéma des flux --- */
+.carte.flux { padding:8px; } #flux-svg { width:100%; max-width:900px; display:block; margin:auto; }
+#flux-svg .lien path { stroke:#7c8596; stroke-width:3; marker-end:url(#f-repos); transition: stroke 1.6s ease, stroke-width 1.6s ease; }
+#flux-svg .lien .etiq { font:600 14px system-ui,sans-serif; fill:#7c8596; transition: fill 1.6s ease; }
+#flux-svg .lien .lib { font:11px ui-monospace,Consolas,monospace; fill:currentColor; opacity:0; transition: opacity 1.6s ease; }
+#flux-svg .lien.mcp.on path { stroke:#2ea043; stroke-width:5; marker-end:url(#f-mcp); transition-duration:.15s; }
+#flux-svg .lien.hook.on path { stroke:#f2a516; stroke-width:5; marker-end:url(#f-hook); transition-duration:.15s; }
+#flux-svg .lien.on.ko path { stroke:#e5484d; marker-end:url(#f-ko); }
+#flux-svg .lien.mcp.on .etiq { fill:#2ea043; } #flux-svg .lien.hook.on .etiq { fill:#f2a516; } #flux-svg .lien.on.ko .etiq { fill:#e5484d; }
+#flux-svg .lien.on .lib { opacity:1; transition-duration:.15s; }
+#flux-svg .noeud rect { transition: stroke-width 1.6s ease, filter 1.6s ease; }
+#flux-svg .noeud.on rect { stroke-width:4.5; filter:drop-shadow(0 0 7px rgba(255,255,255,.55)); transition-duration:.15s; }
+#flux-svg .noeud.occupe rect { animation: occupe 1.4s ease-in-out infinite; }
+@keyframes occupe { 50% { filter:drop-shadow(0 0 9px rgba(47,131,196,.9)); stroke-width:4.5; } }
+#flux-svg .t-grand { font:600 20px system-ui,sans-serif; fill:#fff; } #flux-svg .t-grand.gras { font-weight:800; } #flux-svg .t-petit { font:13px system-ui,sans-serif; fill:#c8d0de; }
+.legende { margin-left:12px; } .pastille { display:inline-block; width:18px; height:4px; border-radius:2px; margin:0 4px 2px 10px; vertical-align:middle; }
+.pastille.repos { background:#7c8596; } .pastille.mcp { background:#2ea043; } .pastille.hook { background:#f2a516; } .pastille.ko { background:#e5484d; }
+#flux-log { padding-left:0; list-style:none; margin:0; } #flux-log li { padding:3px 0; border-bottom:1px solid var(--bord); } #flux-log li.ko { color:var(--ko); } #flux-log .meta { margin-right:8px; }

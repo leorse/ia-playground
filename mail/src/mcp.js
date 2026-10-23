@@ -21,7 +21,7 @@ export function creerServeurMcp(journaliser = () => {}) {
   }, async (p) => {
     try {
       const m = store.envoyer(p);
-      journaliser({ outil: 'envoyer_mail', mail: store.resume(m) });
+      journaliser({ outil: 'envoyer_mail', detail: `→ ${m.a.join(', ')} : ${m.objet}`, mail: store.resume(m) });
       return texte({ envoye: true, id: m.id, fichier: m.fichier });
     } catch (e) {
       if (!(e instanceof store.ErreurMail)) throw e;
@@ -32,7 +32,10 @@ export function creerServeurMcp(journaliser = () => {}) {
   s.registerTool('lister_mails_envoyes', {
     description: 'Liste les mails déjà envoyés pour une note, pour éviter les doublons avant d\'en envoyer un nouveau.',
     inputSchema: { note_id: z.string() },
-  }, async ({ note_id }) => texte(store.parNote(note_id)));
+  }, async ({ note_id }) => {
+    journaliser({ outil: 'lister_mails_envoyes', detail: note_id });
+    return texte(store.parNote(note_id));
+  });
 
   return s;
 }
