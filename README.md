@@ -10,7 +10,7 @@ La spécification complète est dans `spec-plateforme-demo-ia.md` (v0.2).
 |---|---|---|
 | Application RH + serveur MCP + webhook | `app/` | ✅ disponible |
 | Faux serveur de messagerie (MCP + client mail web) | `mail/` | ✅ disponible |
-| Agent autonome (orchestrateur + Copilot CLI en ACP) | `agent/` | ✅ disponible (testé avec un faux Copilot CLI, pas avec le vrai) |
+| Agent autonome (orchestrateur + Copilot CLI en ACP) | `agent/` | ✅ disponible |
 | Agent RH et skills pour VS Code | `vscode-demo/` | ✅ disponible (non testé dans VS Code) |
 
 ## Prérequis
@@ -66,11 +66,11 @@ Les données sont stockées dans `app/data/db.json` (créé au premier lancement
 npm test
 ```
 
-Trois séries de tests, sans Copilot ni réseau :
+Trois séries de tests, sans Copilot CLI ni réseau :
 
 - `app/` (port 3999, base jetable) : refus sans token, outils MCP, droits par token, webhook, suivi de l'agent, réinitialisation.
 - `mail/` (port 5993) : MCP et token, mails visibles dans l'API, HTML conservé, erreurs explicites, doublons.
-- `agent/` (ports 3994, 4994 et 5994) : politique d'autorisation, file d'attente, rejet d'un webhook sans secret, et la **chaîne complète** (webhook → orchestrateur → session ACP → appels MCP → `.eml` → annotation) avec un faux Copilot CLI (`agent/test/faux-copilot.js`).
+- `agent/` (ports 3994, 4994 et 5994) : politique d'autorisation (dont la liste des outils comparée aux serveurs MCP réels), file d'attente, webhook (secret, ping, événements refusés). La session avec Copilot CLI n'est pas testée automatiquement : elle se vérifie à la main, en conditions réelles.
 
 ## Qui parle à qui
 
@@ -222,6 +222,8 @@ Les emplacements `.github/agents/*.agent.md` et `.github/skills/<nom>/SKILL.md` 
 
 L'agent autonome se compose de **l'orchestrateur** (`agent/`, Node.js) et de **Copilot CLI** qu'il pilote en ACP (`copilot --acp --stdio`). Copilot CLI est le cerveau (LLM, boucle d'outils, lecture de la persona et des skills dans `agent/workspace/`) ; l'orchestrateur reçoit le webhook, ouvre une session ACP par note, répond aux demandes d'autorisation et fait remonter l'avancement dans l'application. L'envoi de mail passe par le serveur de messagerie (`mail/`), appelé par l'agent via MCP.
 
+**Copilot CLI est le seul agent pris en charge** : le pilotage de l'orchestrateur repose sur ACP, que Copilot CLI propose en préversion. Il n'y a pas d'autre moteur de substitution.
+
 ### Lancement
 
 Le plus simple : `npm run start:all` (ou `demarrer-tout.cmd`). Sinon, dans **trois terminaux** :
@@ -254,19 +256,6 @@ Puis dans l'interface (<http://localhost:3000>), **Paramètres → cocher « Web
 | `WORKSPACE_DIR` | `./workspace` | Dossier de travail de Copilot CLI (persona + skill) |
 | `SESSION_TIMEOUT_S` | `180` | Délai maximal par note, puis annulation |
 
-### Essayer la chaîne sans Copilot CLI
-
-Un faux agent (`agent/test/faux-copilot.js`) parle ACP et appelle vraiment les deux serveurs MCP (application et messagerie), avec des règles simples (arrivée, confidentiel, information). Utile pour vérifier l'installation sans consommer de quota Copilot :
-
-Copilot CLI est lancé depuis `agent/workspace/` : le chemin du faux agent doit donc être **absolu**. Dans `agent/.env` :
-
-```
-COPILOT_BIN=node
-COPILOT_ARGS=C:\chemin\vers\ia-playground\agent\test\faux-copilot.js
-```
-
-puis `npm run start:all` comme d'habitude.
-
 ### Garde-fous
 
 - Webhook sans secret valide : `401`.
@@ -275,7 +264,7 @@ puis `npm run start:all` comme d'habitude.
 
 ### À vérifier avec votre version de Copilot CLI
 
-Le support ACP de Copilot CLI est en préversion ; je n'ai pas pu le tester ici. Points à contrôler au premier essai :
+Le support ACP de Copilot CLI est en préversion et peut évoluer : figer la version utilisée pour la démo. Points d'attention :
 
 1. Copilot CLI accepte les serveurs MCP transmis à l'ouverture de session ACP (c'est ce que fait l'orchestrateur). Sinon, les déclarer dans la configuration MCP de Copilot CLI sous les noms `appli-rh` et `messagerie`.
 2. Copilot CLI lit `AGENTS.md` et les skills de `.github/skills/` dans le dossier de travail. Sinon, injecter la persona et la procédure dans le prompt (fonction `promptNote` de `agent/src/acp.js`).
@@ -321,7 +310,7 @@ mail/                Faux serveur de messagerie : MCP + client mail web à deux 
 agent/               Orchestrateur et client ACP
   src/               index.js, acp.js, autorisations.js, rapport.js, file.js, console.js, config.js
   workspace/         AGENTS.md (persona) et .github/skills/routage-notes/
-  test/              tests + faux Copilot CLI
+  test/              tests
 vscode-demo/         Espace de travail VS Code
   .vscode/mcp.json   connexion au serveur MCP appli-rh
   .github/agents/    agent-rh.agent.md (persona)
