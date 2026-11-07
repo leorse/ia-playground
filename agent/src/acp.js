@@ -29,7 +29,7 @@ export function promptNote({ noteId, auteur, date = new Date() }) {
 
 /**
  * Client ACP : pilote un agent (Copilot CLI) et ouvre une session par note.
- * `lancer()` renvoie { cible, termine, arreter } ; `cible` est le flux ACP de Copilot CLI.
+ * `lancer()` renvoie { cible, termine, arreter } ; `cible` est un flux ACP (ou une AgentApp en test).
  */
 export function creerClientAcp({ lancer, serveursMcp, workspaceDir, timeoutMs, rapport = { activite() {} } }) {
   let processus = null;
